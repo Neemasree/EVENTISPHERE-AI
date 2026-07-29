@@ -1,26 +1,28 @@
+import { motion } from 'framer-motion';
 import CrowdStats from '../components/crowd/CrowdStats';
-import AIPredictions from '../components/ai/AIPredictions';
-import RiskMeter from '../components/crowd/RiskMeter';
+import CrowdAgentPanel from '../components/crowd/CrowdAgentPanel';
 
 export default function CrowdPage() {
   return (
-    <div className="space-y-6 max-w-[1400px] mx-auto">
+    <div className="space-y-5 max-w-[1400px] mx-auto">
       <div>
-        <h1 className="page-header">Crowd Intelligence</h1>
-        <p className="page-sub">Zone-level crowd metrics, AI predictions, and risk assessment</p>
+        <h1 className="page-title">Crowd Intelligence</h1>
+        <p className="page-subtitle">Live zone metrics and real-time entrance monitoring</p>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <CrowdStats />
-        </div>
-        <div className="space-y-6">
-          <RiskMeter />
-          <div>
-            <p className="text-xs text-white/40 uppercase tracking-wider mb-3">AI Predictions</p>
-            <AIPredictions />
-          </div>
-        </div>
-      </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}>
+        <p className="section-label">Entrance Monitor</p>
+        <CrowdAgentPanel />
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}>
+        <p className="section-label">Live Metrics</p>
+        <CrowdStats />
+      </motion.div>
     </div>
   );
 }

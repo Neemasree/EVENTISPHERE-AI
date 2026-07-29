@@ -1,60 +1,56 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, X, Send, Bot, Minimize2 } from 'lucide-react';
+import { X, Send, Bot, Minimize2, Sparkles, ChevronDown } from 'lucide-react';
 import { useEventStore } from '../../store/eventStore';
 import { formatTime } from '../../utils/helpers';
 
 const quickQuestions = [
-  'Why is Gate A crowded?',
-  'What is the biggest risk right now?',
-  'Which zone needs immediate action?',
-  'Predict crowd in 10 minutes',
+  'Biggest risk right now?',
+  'Gate A status?',
+  'Crowd prediction 10min',
+  'Top recommendation?',
 ];
 
 function getAIResponse(question: string, store: ReturnType<typeof useEventStore.getState>): string {
   const q = question.toLowerCase();
   const { zones, kpi, alerts, predictions } = store;
   const critical = zones.filter(z => z.riskLevel === 'critical');
-  const highRisk = zones.filter(z => z.riskLevel === 'high');
+  const highRisk  = zones.filter(z => z.riskLevel === 'high');
 
-  if (q.includes('gate a') || q.includes('gate a crowd')) {
+  if (q.includes('gate a')) {
     const gateA = zones.find(z => z.id === 'gate_a');
-    return `Gate A currently has ${gateA?.currentCrowd} visitors (${gateA?.occupancy}% capacity). A bus arrived 8 minutes ago adding ~180 passengers. I recommend opening Gate B and C to redistribute the load. Expected wait time reduction: 62%.`;
+    return `Gate A currently has ${gateA?.currentCrowd} visitors (${gateA?.occupancy}% capacity). A bus arrived 8 minutes ago adding ~180 passengers. Recommend opening Gate B and C — expected wait time reduction: 62%.`;
   }
   if (q.includes('biggest risk') || q.includes('risk right now')) {
-    if (critical.length > 0) return `The biggest risk is the ${critical[0].name} — currently at ${critical[0].occupancy}% capacity with a ${critical[0].waitingTime}-minute wait. Recommend immediate action to redistribute crowd.`;
-    if (highRisk.length > 0) return `The highest risk zone is ${highRisk[0].name} at ${highRisk[0].occupancy}% capacity. Monitor closely — congestion predicted to peak in ~6 minutes.`;
-    return `Overall risk is ${kpi.riskLevel}. All zones are within manageable limits. Continue monitoring.`;
+    if (critical.length > 0) return `Biggest risk: **${critical[0].name}** at ${critical[0].occupancy}% capacity. ${critical[0].waitingTime}-min wait time. Immediate action recommended.`;
+    if (highRisk.length > 0) return `Highest risk: **${highRisk[0].name}** at ${highRisk[0].occupancy}% capacity. Congestion predicted to peak in ~6 minutes.`;
+    return `Overall risk is ${kpi.riskLevel}. All zones within manageable limits. Continue monitoring.`;
   }
-  if (q.includes('immediate action') || q.includes('needs action')) {
-    const urgentAlert = alerts.find(a => a.severity === 'critical' && !a.dismissed);
-    if (urgentAlert) return `Immediate action required: ${urgentAlert.title}. ${urgentAlert.message} I have already alerted the relevant agents.`;
-    return `No critical immediate action needed. Recommend monitoring ${kpi.peakZone} — it is the peak density zone at this time.`;
+  if (q.includes('recommend')) {
+    const fc = zones.find(z => z.id === 'food_court');
+    return `Top recommendation: Open Food Stall 3 in the Food Court. Currently at ${fc?.occupancy}% capacity. Expected density reduction: 28%. Confidence: 97%.`;
   }
-  if (q.includes('predict') || q.includes('10 min') || q.includes('minutes')) {
+  if (q.includes('predict') || q.includes('10min') || q.includes('10 min')) {
     const pred = predictions[0];
-    if (pred) return `In 10 minutes, ${pred.zoneName} is predicted to reach ${pred.in10min} visitors (capacity: ${pred.capacity}). Risk: ${pred.predictedRisk.toUpperCase()} with ${pred.confidence}% confidence. Pre-emptive action advised now.`;
+    if (pred) return `In 10 minutes: ${pred.zoneName} predicted at ${pred.in10min} visitors (cap ${pred.capacity}). Risk: ${pred.predictedRisk.toUpperCase()}. Confidence: ${pred.confidence}%.`;
   }
   if (q.includes('crowd') || q.includes('people')) {
-    return `Current crowd: ${kpi.currentCrowd.toLocaleString()} visitors, ${kpi.occupancyPercent}% of total capacity. Flow rate is ${kpi.flowRate} people/min. Peak zone is ${kpi.peakZone}.`;
+    return `Current crowd: ${kpi.currentCrowd.toLocaleString()} visitors at ${kpi.occupancyPercent}% occupancy. Flow rate: ${kpi.flowRate}/min. Peak zone: ${kpi.peakZone}.`;
   }
   if (q.includes('parking')) {
     const parkA = zones.find(z => z.id === 'parking_a');
-    return `Parking A is at ${parkA?.occupancy}% capacity with ${parkA?.currentCrowd} vehicles. I recommend routing new arrivals to Parking B which is currently at 36%. Signage update can be deployed in ~2 minutes.`;
+    return `Parking A: ${parkA?.occupancy}% full with ${parkA?.currentCrowd} vehicles. Recommend routing to Parking B (currently 36%). Signage update: ~2 min deployment.`;
   }
-  if (q.includes('recommendation') || q.includes('recommend')) {
-    return `Top recommendation: Open Food Stall 3 in the Food Court. It is at ${zones.find(z=>z.id==='food_court')?.occupancy}% capacity — the highest risk zone. Expected density reduction: 28%. Confidence: 97%.`;
-  }
-  return `I'm monitoring ${zones.length} zones across the venue. Overall risk is ${kpi.riskLevel.toUpperCase()} with ${kpi.activeAlerts} active alerts. Ask me about any specific zone, prediction, or recommendation for more detail.`;
+  return `Monitoring ${zones.length} zones. Overall risk: ${kpi.riskLevel.toUpperCase()}. ${kpi.activeAlerts} active alerts. Ask about any specific zone, risk, or recommendation.`;
 }
 
 export default function AIAssistant() {
-  const [open, setOpen] = useState(false);
+  const [open,      setOpen]      = useState(false);
   const [minimized, setMinimized] = useState(false);
-  const [input, setInput] = useState('');
-  const [typing, setTyping] = useState(false);
+  const [input,     setInput]     = useState('');
+  const [typing,    setTyping]    = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
-  const store = useEventStore();
+  const store  = useEventStore();
   const { chatMessages, addChatMessage } = store;
 
   useEffect(() => {
@@ -67,88 +63,161 @@ export default function AIAssistant() {
     setInput('');
     addChatMessage({ id: `u_${Date.now()}`, role: 'user', content: msg, timestamp: new Date() });
     setTyping(true);
-    await new Promise(r => setTimeout(r, 800 + Math.random() * 600));
+    await new Promise(r => setTimeout(r, 600 + Math.random() * 700));
     setTyping(false);
-    const response = getAIResponse(msg, store);
-    addChatMessage({ id: `a_${Date.now()}`, role: 'assistant', content: response, timestamp: new Date() });
+    addChatMessage({ id: `a_${Date.now()}`, role: 'assistant', content: getAIResponse(msg, store), timestamp: new Date() });
   };
 
   return (
     <>
-      {/* FAB */}
+      {/* ── FAB ── */}
       <AnimatePresence>
         {!open && (
           <motion.button
-            initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
-            whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.93 }}
             onClick={() => setOpen(true)}
-            className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-40 w-14 h-14 rounded-full flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg, #00d4ff, #a855f7)', boxShadow: '0 0 30px rgba(0,212,255,0.5)' }}
+            className="fixed bottom-20 md:bottom-6 right-5 md:right-6 z-40 w-14 h-14 rounded-2xl flex items-center justify-center"
+            style={{
+              background: 'linear-gradient(135deg, #00d4ff 0%, #a855f7 100%)',
+              boxShadow: '0 0 30px rgba(0,212,255,0.45), 0 8px 20px rgba(0,0,0,0.4)',
+            }}
           >
             <Bot size={22} className="text-white" />
-            <motion.div className="absolute inset-0 rounded-full border-2 border-cyan-400"
-              animate={{ scale: [1, 1.5], opacity: [0.5, 0] }}
-              transition={{ duration: 1.5, repeat: Infinity }} />
+            {/* Ripple rings */}
+            <motion.div className="absolute inset-0 rounded-2xl"
+              style={{ border: '2px solid rgba(0,212,255,0.5)' }}
+              animate={{ scale: [1, 1.5], opacity: [0.6, 0] }}
+              transition={{ duration: 2, repeat: Infinity }} />
+            <motion.div className="absolute inset-0 rounded-2xl"
+              style={{ border: '2px solid rgba(168,85,247,0.4)' }}
+              animate={{ scale: [1, 1.7], opacity: [0.4, 0] }}
+              transition={{ duration: 2, repeat: Infinity, delay: 0.5 }} />
           </motion.button>
         )}
       </AnimatePresence>
 
-      {/* Chat window */}
+      {/* ── Chat window ── */}
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            initial={{ opacity: 0, scale: 0.88, y: 24, transformOrigin: 'bottom right' }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-40 w-80 sm:w-96 bg-dark-800 border border-white/15 rounded-2xl overflow-hidden shadow-2xl"
-            style={{ boxShadow: '0 0 60px rgba(0,212,255,0.15)' }}
+            exit={{ opacity: 0, scale: 0.88, y: 16 }}
+            transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+            className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-40 w-80 sm:w-[380px] rounded-2xl overflow-hidden"
+            style={{
+              background: 'rgba(8,16,32,0.97)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderTopColor: 'rgba(0,212,255,0.2)',
+              boxShadow: '0 0 0 1px rgba(0,212,255,0.08), 0 30px 80px rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(40px)',
+            }}
           >
+            {/* Top accent */}
+            <div className="absolute top-0 left-0 right-0 h-px"
+              style={{ background: 'linear-gradient(90deg, transparent, #00d4ff, #a855f7, transparent)' }} />
+
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/8"
-              style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.1), rgba(168,85,247,0.1))' }}>
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-cyan-400 to-purple-600 flex items-center justify-center">
-                  <Bot size={14} className="text-white" />
+            <div className="flex items-center justify-between px-4 py-3.5"
+              style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'rgba(0,212,255,0.04)' }}>
+              <div className="flex items-center gap-2.5">
+                <div className="relative w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(168,85,247,0.2))',
+                    border: '1px solid rgba(0,212,255,0.25)',
+                  }}>
+                  <Bot size={15} style={{ color: '#00d4ff' }} />
+                  <motion.div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full"
+                    style={{ background: '#00f5a0', border: '2px solid rgba(8,16,32,0.97)' }}
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }} />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-white">EventSphere AI</p>
-                  <p className="text-[9px] text-green-400 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />Online</p>
+                  <p className="text-[13px] font-bold text-white leading-none">EventiSphere AI</p>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    <span className="text-[9px] text-emerald-400 font-mono">Online · Monitoring</span>
+                  </div>
                 </div>
               </div>
+
               <div className="flex items-center gap-1">
-                <button onClick={() => setMinimized(!minimized)} className="w-6 h-6 rounded flex items-center justify-center text-white/40 hover:text-white transition-colors">
-                  <Minimize2 size={12} />
+                <button onClick={() => setMinimized(v => !v)} className="btn-icon w-7 h-7 rounded-lg">
+                  {minimized ? <ChevronDown size={12} /> : <Minimize2 size={12} />}
                 </button>
-                <button onClick={() => setOpen(false)} className="w-6 h-6 rounded flex items-center justify-center text-white/40 hover:text-white transition-colors">
-                  <X size={14} />
+                <button onClick={() => setOpen(false)} className="btn-icon w-7 h-7 rounded-lg">
+                  <X size={13} />
                 </button>
               </div>
             </div>
 
             <AnimatePresence>
               {!minimized && (
-                <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }}>
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                >
                   {/* Messages */}
-                  <div className="h-64 overflow-y-auto p-3 space-y-3">
+                  <div className="h-64 overflow-y-auto p-3 space-y-2.5">
                     {chatMessages.map(msg => (
-                      <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[85%] px-3 py-2 rounded-xl text-xs leading-relaxed
-                          ${msg.role === 'user'
-                            ? 'bg-cyan-500/20 border border-cyan-500/30 text-white'
-                            : 'bg-white/5 border border-white/10 text-white/85'}`}>
+                      <motion.div
+                        key={msg.id}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                      >
+                        {msg.role === 'assistant' && (
+                          <div className="w-6 h-6 rounded-lg flex items-center justify-center mr-1.5 flex-shrink-0 mt-auto mb-0.5"
+                            style={{ background: 'rgba(0,212,255,0.12)', border: '1px solid rgba(0,212,255,0.2)' }}>
+                            <Sparkles size={11} style={{ color: '#00d4ff' }} />
+                          </div>
+                        )}
+                        <div className={`max-w-[82%] px-3 py-2.5 rounded-xl text-[12px] leading-relaxed ${
+                          msg.role === 'user'
+                            ? 'rounded-br-sm text-white'
+                            : 'rounded-bl-sm text-white/80'
+                        }`}
+                          style={msg.role === 'user' ? {
+                            background: 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(0,212,255,0.1))',
+                            border: '1px solid rgba(0,212,255,0.25)',
+                          } : {
+                            background: 'rgba(255,255,255,0.05)',
+                            border: '1px solid rgba(255,255,255,0.09)',
+                          }}>
                           {msg.content}
-                          <p className="text-[9px] text-white/30 mt-1 text-right">{formatTime(msg.timestamp)}</p>
+                          <p className="text-[9px] text-white/25 mt-1.5 text-right font-mono">
+                            {formatTime(msg.timestamp)}
+                          </p>
                         </div>
-                      </div>
+                      </motion.div>
                     ))}
+
+                    {/* Typing indicator */}
                     {typing && (
-                      <div className="flex justify-start">
-                        <div className="bg-white/5 border border-white/10 px-3 py-2 rounded-xl flex items-center gap-1">
-                          {[0,1,2].map(i => (
-                            <motion.div key={i} className="w-1.5 h-1.5 rounded-full bg-cyan-400"
-                              animate={{ y: [0, -5, 0] }}
-                              transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.15 }} />
-                          ))}
+                      <div className="flex justify-start items-end gap-1.5">
+                        <div className="w-6 h-6 rounded-lg flex items-center justify-center"
+                          style={{ background: 'rgba(0,212,255,0.12)', border: '1px solid rgba(0,212,255,0.2)' }}>
+                          <Sparkles size={11} style={{ color: '#00d4ff' }} />
+                        </div>
+                        <div className="px-3 py-2.5 rounded-xl rounded-bl-sm"
+                          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)' }}>
+                          <div className="flex items-center gap-1">
+                            {[0, 1, 2].map(i => (
+                              <motion.div key={i}
+                                className="w-1.5 h-1.5 rounded-full"
+                                style={{ background: '#00d4ff' }}
+                                animate={{ y: [0, -5, 0], opacity: [0.5, 1, 0.5] }}
+                                transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
+                              />
+                            ))}
+                          </div>
                         </div>
                       </div>
                     )}
@@ -156,27 +225,54 @@ export default function AIAssistant() {
                   </div>
 
                   {/* Quick questions */}
-                  <div className="px-3 pb-2 flex flex-wrap gap-1">
+                  <div className="px-3 pb-2 flex flex-wrap gap-1.5"
+                    style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                    <p className="w-full text-[9px] text-white/25 uppercase tracking-wider pt-2 pb-0.5 font-bold">Quick Ask</p>
                     {quickQuestions.map(q => (
                       <button key={q} onClick={() => send(q)}
-                        className="text-[10px] px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-white/50 hover:text-white hover:border-cyan-500/40 transition-all">
+                        className="text-[10px] px-2.5 py-1 rounded-lg transition-all font-medium"
+                        style={{
+                          background: 'rgba(0,212,255,0.06)',
+                          border: '1px solid rgba(0,212,255,0.15)',
+                          color: 'rgba(0,212,255,0.8)',
+                        }}
+                        onMouseEnter={e => {
+                          (e.target as HTMLElement).style.background = 'rgba(0,212,255,0.12)';
+                          (e.target as HTMLElement).style.borderColor = 'rgba(0,212,255,0.3)';
+                        }}
+                        onMouseLeave={e => {
+                          (e.target as HTMLElement).style.background = 'rgba(0,212,255,0.06)';
+                          (e.target as HTMLElement).style.borderColor = 'rgba(0,212,255,0.15)';
+                        }}
+                      >
                         {q}
                       </button>
                     ))}
                   </div>
 
                   {/* Input */}
-                  <div className="flex items-center gap-2 px-3 pb-3">
+                  <div className="flex items-center gap-2 p-3 pt-0">
                     <input
-                      value={input} onChange={e => setInput(e.target.value)}
+                      value={input}
+                      onChange={e => setInput(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && send()}
                       placeholder="Ask anything about the event..."
-                      className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/30 outline-none focus:border-cyan-500/50"
+                      className="input-field text-[12px] py-2.5"
                     />
-                    <motion.button whileTap={{ scale: 0.9 }} onClick={() => send()}
-                      className="w-8 h-8 rounded-xl bg-cyan-500 flex items-center justify-center"
-                      style={{ boxShadow: '0 0 12px rgba(0,212,255,0.4)' }}>
-                      <Send size={13} className="text-dark-900" />
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.93 }}
+                      onClick={() => send()}
+                      disabled={!input.trim()}
+                      className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all"
+                      style={{
+                        background: input.trim()
+                          ? 'linear-gradient(135deg, #00d4ff, #0088cc)'
+                          : 'rgba(255,255,255,0.06)',
+                        boxShadow: input.trim() ? '0 0 14px rgba(0,212,255,0.35)' : 'none',
+                      }}
+                    >
+                      <Send size={14} style={{ color: input.trim() ? '#020409' : 'rgba(255,255,255,0.3)' }} />
                     </motion.button>
                   </div>
                 </motion.div>

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type {
   Zone, Alert, Recommendation, Prediction, Agent, AgentMessage,
-  TimelineEvent, KPIData, Notification, Incident, ChatMessage, RiskLevel, ScenarioType
+  TimelineEvent, KPIData, Notification, Incident, ChatMessage, RiskLevel, ScenarioType, Event
 } from '../types';
 
 const initialZones: Zone[] = [
@@ -17,6 +17,11 @@ const initialZones: Zone[] = [
   { id: 'restrooms', name: 'Restrooms', type: 'restroom', currentCrowd: 95, maxCapacity: 120, occupancy: 79, waitingTime: 6, riskLevel: 'high', x: 340, y: 255, width: 80, height: 45 },
   { id: 'exit_main', name: 'Main Exit', type: 'exit', currentCrowd: 140, maxCapacity: 400, occupancy: 35, waitingTime: 2, riskLevel: 'low', x: 20, y: 310, width: 100, height: 45 },
   { id: 'emergency_exit', name: 'Emergency Exit', type: 'emergency_exit', currentCrowd: 0, maxCapacity: 1000, occupancy: 0, waitingTime: 0, riskLevel: 'low', x: 440, y: 175, width: 80, height: 50 },
+];
+
+const initialEvents: Event[] = [
+  { id: 'ev1', name: 'Summer Music Festival', location: 'Central Arena, Mumbai', date: '2025-07-15', status: 'live', totalCapacity: 15000, zones: initialZones },
+  { id: 'ev2', name: 'Tech Conference 2025', location: 'Convention Centre, Bangalore', date: '2025-08-20', status: 'upcoming', totalCapacity: 5000, zones: [] },
 ];
 
 const initialAgents: Agent[] = [
@@ -64,7 +69,8 @@ const initialPredictions: Prediction[] = [
 ];
 
 export interface EventState {
-  // Data
+  events: Event[];
+  activeEventId: string;
   zones: Zone[];
   alerts: Alert[];
   recommendations: Recommendation[];
@@ -75,18 +81,13 @@ export interface EventState {
   notifications: Notification[];
   incidents: Incident[];
   chatMessages: ChatMessage[];
-
-  // KPI
   kpi: KPIData;
-
-  // UI
   selectedZone: Zone | null;
   isMuted: boolean;
   isDarkMode: boolean;
   sidebarOpen: boolean;
   activeScenario: ScenarioType | null;
 
-  // Actions
   setSelectedZone: (zone: Zone | null) => void;
   applyRecommendation: (id: string) => void;
   dismissAlert: (id: string) => void;
@@ -95,6 +96,8 @@ export interface EventState {
   addTimelineEvent: (evt: TimelineEvent) => void;
   addAlert: (alert: Alert) => void;
   addNotification: (n: Notification) => void;
+  addEvent: (e: Event) => void;
+  setActiveEvent: (id: string) => void;
   triggerScenario: (scenario: ScenarioType) => void;
   addChatMessage: (msg: ChatMessage) => void;
   toggleMute: () => void;
@@ -121,6 +124,8 @@ const computeKPI = (zones: Zone[], alerts: Alert[], recs: Recommendation[]): KPI
 };
 
 export const useEventStore = create<EventState>((set, get) => ({
+  events: initialEvents,
+  activeEventId: 'ev1',
   zones: initialZones,
   alerts: initialAlerts,
   recommendations: initialRecommendations,
@@ -135,7 +140,7 @@ export const useEventStore = create<EventState>((set, get) => ({
     { id: 'i3', severity: 'critical', zone: 'Food Court', time: ts(8), description: 'Food Court overflow imminent', actionTaken: 'Opening stall 3 — pending approval', resolved: false, responseTime: 0 },
   ],
   chatMessages: [
-    { id: 'c0', role: 'assistant', content: 'Hello! I\'m your EventSphere AI assistant. Ask me anything about the current event — crowd status, predictions, or recommendations.', timestamp: ts(1) },
+    { id: 'c0', role: 'assistant', content: "Hello! I'm your EventSphere AI assistant. Ask me anything about the current event — crowd status, predictions, or recommendations.", timestamp: ts(1) },
   ],
   kpi: computeKPI(initialZones, initialAlerts, initialRecommendations),
   selectedZone: null,
@@ -148,6 +153,13 @@ export const useEventStore = create<EventState>((set, get) => ({
   toggleMute: () => set(s => ({ isMuted: !s.isMuted })),
   toggleDarkMode: () => set(s => ({ isDarkMode: !s.isDarkMode })),
   toggleSidebar: () => set(s => ({ sidebarOpen: !s.sidebarOpen })),
+
+  addEvent: (e) => set(s => ({ events: [...s.events, e] })),
+  setActiveEvent: (id) => set(s => {
+    const ev = s.events.find(e => e.id === id);
+    if (!ev) return {};
+    return { activeEventId: id, zones: ev.zones.length ? ev.zones : s.zones };
+  }),
 
   applyRecommendation: (id) => set(s => {
     const recs = s.recommendations.map(r => r.id === id ? { ...r, applied: true } : r);

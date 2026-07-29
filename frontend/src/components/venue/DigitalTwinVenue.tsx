@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEventStore } from '../../store/eventStore';
-import { riskColor, occupancyColor, formatTime } from '../../utils/helpers';
+import { riskColor, occupancyColor } from '../../utils/helpers';
 import type { Zone } from '../../types';
 import ZoneDetailModal from './ZoneDetailModal';
+import { Layers, ZoomIn } from 'lucide-react';
 
 const zoneIcons: Record<string, string> = {
   parking: '🚗', gate: '🚪', vip: '⭐', stage: '🎵',
@@ -15,54 +16,91 @@ interface Props { compact?: boolean }
 export default function DigitalTwinVenue({ compact }: Props) {
   const { zones, setSelectedZone, selectedZone } = useEventStore();
   const [hoveredZone, setHoveredZone] = useState<Zone | null>(null);
-  const [showModal, setShowModal] = useState(false);
+  const [showModal,   setShowModal]   = useState(false);
 
   const handleZoneClick = (zone: Zone) => {
     setSelectedZone(zone);
     setShowModal(true);
   };
 
-  // SVG viewBox: 0 0 540 380
+  const criticalCount = zones.filter(z => z.riskLevel === 'critical').length;
+
   return (
-    <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/8">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-white">Digital Twin</span>
-          <span className="live-dot" />
-          <span className="text-xs text-green-400 font-mono">LIVE</span>
+    <div className="rounded-2xl overflow-hidden"
+      style={{
+        background: 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+      }}>
+
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-2.5"
+        style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center"
+            style={{ background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.2)' }}>
+            <Layers size={13} style={{ color: '#00d4ff' }} />
+          </div>
+          <div>
+            <p className="text-[13px] font-bold text-white leading-none">Venue Map</p>
+            <p className="text-[9px] text-white/30 mt-0.5 font-mono">Click any zone for details</p>
+          </div>
+          <span className="live-dot w-1.5 h-1.5 ml-1" />
         </div>
-        <div className="flex items-center gap-3 text-xs text-white/40">
-          {['low','medium','high','critical'].map(r => (
-            <span key={r} className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full inline-block" style={{ background: riskColor(r as any) }} />
-              {r}
-            </span>
-          ))}
+
+        <div className="flex items-center gap-2">
+          {criticalCount > 0 && (
+            <motion.div
+              animate={{ opacity: [1, 0.5, 1] }}
+              transition={{ duration: 1, repeat: Infinity }}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold"
+              style={{ background: 'rgba(244,63,94,0.12)', border: '1px solid rgba(244,63,94,0.3)', color: '#f43f5e' }}>
+              ⚠ {criticalCount} critical
+            </motion.div>
+          )}
+          {/* Legend */}
+          <div className="hidden sm:flex items-center gap-2.5">
+            {(['low', 'medium', 'high', 'critical'] as const).map(r => (
+              <div key={r} className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: riskColor(r), boxShadow: `0 0 4px ${riskColor(r)}` }} />
+                <span className="text-[9px] text-white/30 capitalize">{r}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="relative" style={{ paddingBottom: compact ? '54%' : '72%' }}>
+      {/* SVG Map */}
+      <div className="relative" style={{ paddingBottom: compact ? '40%' : '44%' }}>
         <svg
           viewBox="0 0 540 380"
           className="absolute inset-0 w-full h-full"
-          style={{ background: 'linear-gradient(135deg, #0a0f1e 0%, #0d1425 100%)' }}
+          style={{ background: 'linear-gradient(135deg, #050c1a 0%, #080f20 50%, #050c1a 100%)' }}
         >
-          {/* Grid lines */}
-          {[...Array(14)].map((_, i) => (
-            <line key={`h${i}`} x1="0" y1={i * 28} x2="540" y2={i * 28} stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
-          ))}
+          {/* Fine grid */}
           {[...Array(20)].map((_, i) => (
-            <line key={`v${i}`} x1={i * 28} y1="0" x2={i * 28} y2="380" stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
+            <line key={`h${i}`} x1="0" y1={i * 19} x2="540" y2={i * 19}
+              stroke="rgba(255,255,255,0.025)" strokeWidth="0.5" />
+          ))}
+          {[...Array(28)].map((_, i) => (
+            <line key={`v${i}`} x1={i * 19} y1="0" x2={i * 19} y2="380"
+              stroke="rgba(255,255,255,0.025)" strokeWidth="0.5" />
           ))}
 
           {/* Venue boundary */}
-          <rect x="10" y="10" width="520" height="360" rx="12" fill="none" stroke="rgba(0,212,255,0.15)" strokeWidth="1.5" strokeDasharray="6 4" />
+          <rect x="8" y="8" width="524" height="364" rx="14"
+            fill="none" stroke="rgba(0,212,255,0.12)" strokeWidth="1" strokeDasharray="8 5" />
+          {/* Inner guide */}
+          <rect x="14" y="14" width="512" height="352" rx="10"
+            fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" />
 
           {/* Zones */}
           {zones.map(zone => {
-            const color = riskColor(zone.riskLevel);
-            const isHovered = hoveredZone?.id === zone.id;
-            const isSelected = selectedZone?.id === zone.id;
+            const color   = riskColor(zone.riskLevel);
+            const isHov   = hoveredZone?.id === zone.id;
+            const isSel   = selectedZone?.id === zone.id;
+            const isCrit  = zone.riskLevel === 'critical';
+
             return (
               <g key={zone.id}
                 onClick={() => handleZoneClick(zone)}
@@ -70,66 +108,104 @@ export default function DigitalTwinVenue({ compact }: Props) {
                 onMouseLeave={() => setHoveredZone(null)}
                 style={{ cursor: 'pointer' }}
               >
-                {/* Zone fill */}
-                <motion.rect
-                  x={zone.x} y={zone.y} width={zone.width} height={zone.height}
-                  rx="6"
-                  fill={`${color}18`}
-                  stroke={color}
-                  strokeWidth={isSelected ? 2.5 : isHovered ? 2 : 1.5}
-                  animate={{ opacity: [0.85, 1, 0.85] }}
-                  transition={{ duration: 2.5, repeat: Infinity, delay: Math.random() * 2 }}
-                />
-
-                {/* Glow on critical */}
-                {zone.riskLevel === 'critical' && (
+                {/* Critical outer glow ring */}
+                {isCrit && (
                   <motion.rect
-                    x={zone.x - 3} y={zone.y - 3}
-                    width={zone.width + 6} height={zone.height + 6}
-                    rx="9" fill="none" stroke={color} strokeWidth="1"
-                    animate={{ opacity: [0, 0.6, 0] }}
+                    x={zone.x - 4} y={zone.y - 4}
+                    width={zone.width + 8} height={zone.height + 8}
+                    rx="10" fill="none"
+                    stroke={color}
+                    strokeWidth="0.8"
+                    animate={{ opacity: [0, 0.5, 0] }}
                     transition={{ duration: 1.4, repeat: Infinity }}
                   />
                 )}
 
-                {/* Occupancy bar */}
-                <rect x={zone.x + 4} y={zone.y + zone.height - 8} width={zone.width - 8} height={4} rx="2" fill="rgba(255,255,255,0.1)" />
+                {/* Zone background */}
                 <motion.rect
-                  x={zone.x + 4} y={zone.y + zone.height - 8}
-                  width={(zone.width - 8) * (zone.occupancy / 100)} height={4} rx="2"
-                  fill={occupancyColor(zone.occupancy)}
-                  animate={{ width: (zone.width - 8) * (zone.occupancy / 100) }}
-                  transition={{ duration: 0.8 }}
+                  x={zone.x} y={zone.y}
+                  width={zone.width} height={zone.height}
+                  rx="7"
+                  fill={`${color}${isSel ? '22' : isHov ? '18' : '12'}`}
+                  stroke={color}
+                  strokeWidth={isSel ? 2 : isHov ? 1.8 : 1.2}
+                  animate={{ opacity: isCrit ? [0.8, 1, 0.8] : 1 }}
+                  transition={{ duration: 2, repeat: isCrit ? Infinity : 0 }}
+                  style={{ filter: isHov || isSel ? `drop-shadow(0 0 6px ${color}60)` : 'none' }}
                 />
 
-                {/* Icon + Name */}
-                <text x={zone.x + 8} y={zone.y + 18} fontSize="11" fill={color} fontWeight="600" fontFamily="Inter,sans-serif">
+                {/* Selected indicator */}
+                {isSel && (
+                  <rect x={zone.x} y={zone.y} width={3} height={zone.height} rx="3"
+                    fill={color} style={{ filter: `drop-shadow(0 0 4px ${color})` }} />
+                )}
+
+                {/* Zone name & icon */}
+                <text x={zone.x + 8} y={zone.y + 17}
+                  fontSize="10.5" fill={color}
+                  fontWeight="700" fontFamily="Inter,sans-serif">
                   {zoneIcons[zone.type]} {zone.name}
                 </text>
 
-                {/* Crowd count */}
-                <text x={zone.x + 8} y={zone.y + 32} fontSize="9" fill="rgba(255,255,255,0.55)" fontFamily="JetBrains Mono,monospace">
-                  {zone.currentCrowd}/{zone.maxCapacity} · {zone.occupancy}%
+                {/* Stats */}
+                <text x={zone.x + 8} y={zone.y + 30}
+                  fontSize="9" fill="rgba(255,255,255,0.5)"
+                  fontFamily="JetBrains Mono,monospace">
+                  {zone.currentCrowd}/{zone.maxCapacity}
                 </text>
+
+                {/* Occupancy bar track */}
+                <rect x={zone.x + 6} y={zone.y + zone.height - 7}
+                  width={zone.width - 12} height={3.5} rx="2"
+                  fill="rgba(255,255,255,0.08)" />
+                {/* Occupancy bar fill */}
+                <motion.rect
+                  x={zone.x + 6} y={zone.y + zone.height - 7}
+                  width={(zone.width - 12) * (zone.occupancy / 100)}
+                  height={3.5} rx="2"
+                  fill={occupancyColor(zone.occupancy)}
+                  animate={{ width: (zone.width - 12) * (zone.occupancy / 100) }}
+                  transition={{ duration: 0.8, ease: 'easeOut' }}
+                />
+
+                {/* Occupancy % label (for larger zones) */}
+                {zone.width >= 100 && (
+                  <text
+                    x={zone.x + zone.width - 8} y={zone.y + 17}
+                    fontSize="9" fill={color}
+                    fontFamily="JetBrains Mono,monospace"
+                    textAnchor="end" fontWeight="600">
+                    {zone.occupancy}%
+                  </text>
+                )}
               </g>
             );
           })}
 
-          {/* Tooltip on hover */}
+          {/* Hover tooltip */}
           {hoveredZone && (() => {
-            const z = hoveredZone;
-            const tx = Math.min(z.x, 380);
-            const ty = z.y > 200 ? z.y - 70 : z.y + z.height + 8;
+            const z  = hoveredZone;
+            const tx = Math.min(Math.max(z.x - 10, 4), 370);
+            const ty = z.y > 200 ? z.y - 72 : z.y + z.height + 10;
+            const c  = riskColor(z.riskLevel);
             return (
-              <g>
-                <rect x={tx} y={ty} width={140} height={60} rx="6"
-                  fill="rgba(15,23,42,0.95)" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-                <text x={tx + 8} y={ty + 16} fontSize="10" fill="white" fontWeight="600" fontFamily="Inter,sans-serif">{z.name}</text>
-                <text x={tx + 8} y={ty + 30} fontSize="9" fill={riskColor(z.riskLevel)} fontFamily="Inter,sans-serif">
-                  Risk: {z.riskLevel.toUpperCase()}
+              <g style={{ pointerEvents: 'none' }}>
+                <rect x={tx} y={ty} width={148} height={64} rx="8"
+                  fill="rgba(8,15,32,0.97)" stroke="rgba(255,255,255,0.12)" strokeWidth="0.8" />
+                {/* Accent top */}
+                <line x1={tx + 8} y1={ty} x2={tx + 140} y2={ty} stroke={c} strokeWidth="1.5" strokeLinecap="round" />
+
+                <text x={tx + 10} y={ty + 16} fontSize="10.5" fill="white" fontWeight="700" fontFamily="Inter,sans-serif">
+                  {z.name}
                 </text>
-                <text x={tx + 8} y={ty + 44} fontSize="9" fill="rgba(255,255,255,0.6)" fontFamily="Inter,sans-serif">
-                  Wait: {z.waitingTime}m · {z.occupancy}% full
+                <text x={tx + 10} y={ty + 30} fontSize="9" fill={c} fontFamily="Inter,sans-serif" fontWeight="600">
+                  {z.riskLevel.toUpperCase()} · {z.occupancy}% full
+                </text>
+                <text x={tx + 10} y={ty + 44} fontSize="9" fill="rgba(255,255,255,0.5)" fontFamily="JetBrains Mono,monospace">
+                  {z.currentCrowd}/{z.maxCapacity} · Wait: {z.waitingTime}m
+                </text>
+                <text x={tx + 10} y={ty + 58} fontSize="8.5" fill="rgba(0,212,255,0.7)" fontFamily="Inter,sans-serif">
+                  Click for details →
                 </text>
               </g>
             );
@@ -137,17 +213,36 @@ export default function DigitalTwinVenue({ compact }: Props) {
         </svg>
       </div>
 
-      {/* Zone legend chips */}
-      <div className="px-4 py-3 border-t border-white/8 flex flex-wrap gap-2">
-        {zones.slice(0, compact ? 6 : zones.length).map(zone => (
-          <button key={zone.id} onClick={() => handleZoneClick(zone)}
-            className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-all hover:bg-white/10"
-            style={{ border: `1px solid ${riskColor(zone.riskLevel)}40`, background: `${riskColor(zone.riskLevel)}10` }}>
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: riskColor(zone.riskLevel) }} />
-            <span className="text-white/70">{zone.name}</span>
-            <span className="font-mono" style={{ color: riskColor(zone.riskLevel) }}>{zone.occupancy}%</span>
-          </button>
-        ))}
+      {/* Zone chips */}
+      <div className="px-4 py-2.5 flex flex-wrap gap-1.5"
+        style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+        {zones.slice(0, compact ? 6 : zones.length).map(zone => {
+          const c = riskColor(zone.riskLevel);
+          return (
+            <button
+              key={zone.id}
+              onClick={() => handleZoneClick(zone)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-all duration-150 hover:scale-105"
+              style={{
+                background: `${c}10`,
+                border: `1px solid ${c}28`,
+                color: 'rgba(255,255,255,0.65)',
+              }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                style={{ background: c, boxShadow: `0 0 4px ${c}` }} />
+              <span>{zone.name}</span>
+              <span className="font-mono font-bold" style={{ color: c }}>{zone.occupancy}%</span>
+            </button>
+          );
+        })}
+        {compact && zones.length > 6 && (
+          <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] text-white/30"
+            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            <ZoomIn size={10} />
+            +{zones.length - 6} more
+          </div>
+        )}
       </div>
 
       <AnimatePresence>

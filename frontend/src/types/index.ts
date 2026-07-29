@@ -1,3 +1,13 @@
+export interface Event {
+  id: string;
+  name: string;
+  location: string;
+  date: string;
+  status: 'live' | 'upcoming' | 'ended';
+  totalCapacity: number;
+  zones: Zone[];
+}
+
 // ─── Zone Types ──────────────────────────────────────────────────────────────
 export type RiskLevel = 'low' | 'medium' | 'high' | 'critical';
 export type ZoneType = 'parking' | 'gate' | 'vip' | 'stage' | 'food' | 'medical' | 'restroom' | 'exit' | 'emergency_exit';

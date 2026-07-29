@@ -1,17 +1,21 @@
 import AnalyticsDashboard from '../components/analytics/AnalyticsDashboard';
-import { Download } from 'lucide-react';
+import { Download, BarChart3 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export default function AnalyticsPage() {
   return (
     <div className="space-y-6 max-w-[1400px] mx-auto">
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between">
         <div>
-          <h1 className="page-header">Analytics & Insights</h1>
-          <p className="page-sub">Charts, trends, and AI-generated insights across all operational areas</p>
+          <h1 className="page-title">Analytics & Insights</h1>
+          <p className="page-subtitle">Charts, trends, and AI-generated insights across all operational areas</p>
         </div>
-        <button className="btn-ghost flex items-center gap-2">
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.97 }}
+          className="btn-ghost gap-2">
           <Download size={14} /> Export PDF
-        </button>
+        </motion.button>
       </div>
       <AnalyticsDashboard />
     </div>

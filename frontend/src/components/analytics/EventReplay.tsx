@@ -1,26 +1,23 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Play, Pause, SkipBack, SkipForward, FastForward } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, FastForward, History } from 'lucide-react';
 import { riskColor, occupancyColor } from '../../utils/helpers';
 import type { RiskLevel } from '../../types';
 
 interface Frame {
-  label: string;
-  time: string;
-  desc: string;
+  label: string; time: string; desc: string;
   zones: Record<string, { crowd: number; occ: number; risk: RiskLevel }>;
-  visitors: number;
-  alerts: number;
+  visitors: number; alerts: number;
 }
 
 const frames: Frame[] = [
-  { label: '14:00', time: '2:00 PM', desc: 'Gates open. First visitors arriving.', visitors: 1200, alerts: 0,
+  { label: '14:00', time: '2:00 PM', desc: 'Gates open — first visitors arriving.', visitors: 1200, alerts: 0,
     zones: { 'Gate A': { crowd: 60, occ: 12, risk: 'low' }, 'Food Court': { crowd: 40, occ: 7, risk: 'low' }, 'Main Stage': { crowd: 400, occ: 8, risk: 'low' }, 'Parking A': { crowd: 180, occ: 36, risk: 'low' } } },
   { label: '15:00', time: '3:00 PM', desc: 'Steady inflow. Parking A reaching 60%.', visitors: 3400, alerts: 1,
     zones: { 'Gate A': { crowd: 280, occ: 56, risk: 'medium' }, 'Food Court': { crowd: 200, occ: 33, risk: 'low' }, 'Main Stage': { crowd: 1800, occ: 36, risk: 'low' }, 'Parking A': { crowd: 300, occ: 60, risk: 'medium' } } },
   { label: '16:00', time: '4:00 PM', desc: 'Bus arrival at Gate A. AI alert generated.', visitors: 5800, alerts: 2,
     zones: { 'Gate A': { crowd: 450, occ: 90, risk: 'critical' }, 'Food Court': { crowd: 380, occ: 63, risk: 'medium' }, 'Main Stage': { crowd: 2800, occ: 56, risk: 'medium' }, 'Parking A': { crowd: 400, occ: 80, risk: 'high' } } },
-  { label: '16:13', time: '4:13 PM', desc: 'Gate C opened. Crowd redistributed.', visitors: 5900, alerts: 1,
+  { label: '16:13', time: '4:13 PM', desc: 'Gate C opened by AI. Crowd redistributed.', visitors: 5900, alerts: 1,
     zones: { 'Gate A': { crowd: 320, occ: 64, risk: 'medium' }, 'Food Court': { crowd: 420, occ: 70, risk: 'high' }, 'Main Stage': { crowd: 3000, occ: 60, risk: 'medium' }, 'Parking A': { crowd: 420, occ: 84, risk: 'high' } } },
   { label: '17:00', time: '5:00 PM', desc: 'Concert starts. Main Stage surges.', visitors: 7200, alerts: 2,
     zones: { 'Gate A': { crowd: 380, occ: 76, risk: 'high' }, 'Food Court': { crowd: 520, occ: 87, risk: 'critical' }, 'Main Stage': { crowd: 4000, occ: 80, risk: 'high' }, 'Parking A': { crowd: 450, occ: 90, risk: 'critical' } } },
@@ -35,11 +32,10 @@ const frames: Frame[] = [
 ];
 
 export default function EventReplay() {
-  const [index, setIndex] = useState(0);
+  const [index,   setIndex]   = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(1);
+  const [speed,   setSpeed]   = useState(1);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
   const frame = frames[index];
 
   useEffect(() => {
@@ -56,39 +52,75 @@ export default function EventReplay() {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [playing, speed]);
 
+  const progress = (index / (frames.length - 1)) * 100;
+
   return (
-    <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-      <div className="px-5 py-4 border-b border-white/8">
-        <p className="text-sm font-semibold text-white">Event Replay</p>
-        <p className="text-xs text-white/40 mt-0.5">Scrub through the event timeline and watch crowd dynamics unfold</p>
+    <div className="rounded-2xl overflow-hidden"
+      style={{
+        background: 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+      }}>
+
+      {/* Header */}
+      <div className="flex items-center gap-3 px-5 py-4"
+        style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="w-8 h-8 rounded-xl flex items-center justify-center"
+          style={{ background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.25)' }}>
+          <History size={15} style={{ color: '#a855f7' }} />
+        </div>
+        <div>
+          <p className="text-[13px] font-bold text-white leading-none">Event Replay</p>
+          <p className="text-[10px] text-white/30 mt-0.5">Scrub through the event timeline and watch dynamics unfold</p>
+        </div>
       </div>
 
       <div className="p-5 space-y-5">
-        {/* Timeline scrubber */}
+        {/* Scrubber */}
         <div>
-          <div className="flex items-center justify-between text-xs text-white/40 mb-2">
-            <span>{frames[0].time}</span>
-            <span className="text-white font-mono text-sm font-bold">{frame.time}</span>
-            <span>{frames[frames.length - 1].time}</span>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] text-white/30 font-mono">{frames[0].time}</span>
+            <motion.span
+              key={frame.time}
+              initial={{ y: -4, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              className="text-sm font-bold font-mono text-cyan-400">
+              {frame.time}
+            </motion.span>
+            <span className="text-[10px] text-white/30 font-mono">{frames[frames.length - 1].time}</span>
           </div>
-          <div className="relative h-2 bg-white/8 rounded-full cursor-pointer"
+
+          {/* Track */}
+          <div
+            className="relative h-2 rounded-full cursor-pointer group"
+            style={{ background: 'rgba(255,255,255,0.07)' }}
             onClick={e => {
               const rect = e.currentTarget.getBoundingClientRect();
-              const pct = (e.clientX - rect.left) / rect.width;
+              const pct  = (e.clientX - rect.left) / rect.width;
               setIndex(Math.round(pct * (frames.length - 1)));
             }}>
-            <motion.div className="absolute h-full bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full"
-              animate={{ width: `${(index / (frames.length - 1)) * 100}%` }}
-              transition={{ duration: 0.3 }} />
-            <motion.div className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border-2 border-cyan-400 shadow-lg"
-              animate={{ left: `calc(${(index / (frames.length - 1)) * 100}% - 8px)` }}
-              transition={{ duration: 0.3 }} />
+            {/* Fill */}
+            <motion.div
+              className="absolute h-full rounded-full"
+              style={{ background: 'linear-gradient(90deg, #00d4ff, #a855f7)' }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.25 }}
+            />
+            {/* Thumb */}
+            <motion.div
+              className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-cyan-400 bg-white shadow-lg"
+              style={{ boxShadow: '0 0 10px rgba(0,212,255,0.6)' }}
+              animate={{ left: `calc(${progress}% - 8px)` }}
+              transition={{ duration: 0.25 }}
+            />
           </div>
-          {/* Tick marks */}
-          <div className="flex justify-between mt-1">
+
+          {/* Tick labels */}
+          <div className="flex justify-between mt-2">
             {frames.map((f, i) => (
               <button key={i} onClick={() => setIndex(i)}
-                className={`text-[9px] font-mono transition-colors ${i === index ? 'text-cyan-400' : 'text-white/25 hover:text-white/50'}`}>
+                className="text-[9px] font-mono transition-all duration-200 px-0.5"
+                style={{ color: i === index ? '#00d4ff' : 'rgba(255,255,255,0.2)' }}>
                 {f.label}
               </button>
             ))}
@@ -98,48 +130,97 @@ export default function EventReplay() {
         {/* Controls */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <button onClick={() => setIndex(0)} className="btn-ghost p-2"><SkipBack size={14} /></button>
-            <button onClick={() => setIndex(i => Math.max(0, i - 1))} className="btn-ghost p-2">‹</button>
-            <motion.button whileTap={{ scale: 0.9 }}
+            <button onClick={() => setIndex(0)} className="btn-icon" title="Rewind">
+              <SkipBack size={13} />
+            </button>
+            <button onClick={() => setIndex(i => Math.max(0, i - 1))} className="btn-icon" title="Step back">
+              <span className="text-sm font-bold">‹</span>
+            </button>
+            <motion.button
+              whileHover={{ scale: 1.06 }}
+              whileTap={{ scale: 0.93 }}
               onClick={() => { if (index >= frames.length - 1) setIndex(0); setPlaying(p => !p); }}
-              className="w-10 h-10 rounded-xl bg-cyan-500 flex items-center justify-center"
-              style={{ boxShadow: '0 0 16px rgba(0,212,255,0.4)' }}>
-              {playing ? <Pause size={16} className="text-dark-900" /> : <Play size={16} className="text-dark-900 ml-0.5" />}
+              className="w-11 h-11 rounded-xl flex items-center justify-center"
+              style={{
+                background: 'linear-gradient(135deg, #00d4ff, #0088cc)',
+                boxShadow: '0 0 20px rgba(0,212,255,0.35)',
+              }}>
+              {playing
+                ? <Pause size={16} style={{ color: '#020409' }} />
+                : <Play  size={16} style={{ color: '#020409', marginLeft: '2px' }} />
+              }
             </motion.button>
-            <button onClick={() => setIndex(i => Math.min(frames.length - 1, i + 1))} className="btn-ghost p-2">›</button>
-            <button onClick={() => setIndex(frames.length - 1)} className="btn-ghost p-2"><SkipForward size={14} /></button>
+            <button onClick={() => setIndex(i => Math.min(frames.length - 1, i + 1))} className="btn-icon" title="Step forward">
+              <span className="text-sm font-bold">›</span>
+            </button>
+            <button onClick={() => setIndex(frames.length - 1)} className="btn-icon" title="End">
+              <SkipForward size={13} />
+            </button>
           </div>
+
+          {/* Speed */}
           <div className="flex items-center gap-2">
-            <FastForward size={12} className="text-white/40" />
+            <FastForward size={12} className="text-white/30" />
             {[1, 2, 4].map(s => (
               <button key={s} onClick={() => setSpeed(s)}
-                className={`text-xs px-2 py-1 rounded-lg transition-all ${speed === s ? 'bg-cyan-500/20 border border-cyan-500/40 text-cyan-400' : 'bg-white/5 border border-white/10 text-white/40 hover:text-white/70'}`}>
+                className="text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition-all"
+                style={speed === s ? {
+                  background: 'rgba(0,212,255,0.15)',
+                  border: '1px solid rgba(0,212,255,0.35)',
+                  color: '#00d4ff',
+                } : {
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  color: 'rgba(255,255,255,0.4)',
+                }}>
                 {s}×
               </button>
             ))}
           </div>
         </div>
 
-        {/* Frame info */}
-        <motion.div key={index} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-          className="bg-white/5 border border-white/10 rounded-xl p-4">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-bold text-white">{frame.time} — {frame.desc}</p>
-            <div className="flex items-center gap-3 text-xs text-white/40">
-              <span>👥 {frame.visitors.toLocaleString()}</span>
-              <span className={frame.alerts > 0 ? 'text-orange-400' : 'text-green-400'}>🔔 {frame.alerts} alerts</span>
+        {/* Frame detail card */}
+        <motion.div
+          key={index}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          className="rounded-xl p-4"
+          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+        >
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <p className="text-[13px] font-bold text-white">{frame.time} — {frame.desc}</p>
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-1.5 text-[11px] text-white/50 font-mono">
+                👥 {frame.visitors.toLocaleString()}
+              </span>
+              <span className={`flex items-center gap-1.5 text-[11px] font-mono font-bold ${frame.alerts > 0 ? 'text-orange-400' : 'text-emerald-400'}`}>
+                🔔 {frame.alerts} alerts
+              </span>
             </div>
           </div>
+
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {Object.entries(frame.zones).map(([name, z]) => (
-              <div key={name} className="bg-white/5 rounded-lg p-2.5">
-                <p className="text-[10px] text-white/50 mb-1 truncate">{name}</p>
-                <p className="text-sm font-bold font-mono" style={{ color: occupancyColor(z.occ) }}>{z.occ}%</p>
-                <div className="h-1 bg-white/8 rounded-full mt-1 overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: `${z.occ}%`, background: riskColor(z.risk) }} />
+            {Object.entries(frame.zones).map(([name, z]) => {
+              const oc = occupancyColor(z.occ);
+              const rc = riskColor(z.risk);
+              return (
+                <div key={name} className="rounded-xl p-3"
+                  style={{ background: `${rc}08`, border: `1px solid ${rc}20` }}>
+                  <p className="text-[10px] text-white/40 mb-2 truncate font-semibold">{name}</p>
+                  <p className="text-[16px] font-bold font-mono leading-none mb-2" style={{ color: oc }}>{z.occ}%</p>
+                  <div className="progress-track">
+                    <motion.div
+                      className="progress-fill"
+                      animate={{ width: `${z.occ}%` }}
+                      transition={{ duration: 0.5 }}
+                      style={{ background: rc }}
+                    />
+                  </div>
+                  <p className="text-[9px] text-white/25 font-mono mt-1">{z.crowd} people</p>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </motion.div>
       </div>

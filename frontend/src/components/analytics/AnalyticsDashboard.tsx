@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import { motion } from 'framer-motion';
 import { useEventStore } from '../../store/eventStore';
+import type { ReactNode } from 'react';
 
 const hourlyData = [
   { hour: '14:00', visitors: 1200, capacity: 8000, incidents: 0 },
@@ -27,14 +28,14 @@ const zoneBar = [
 ];
 
 const densityPie = [
-  { name: 'Low (0-60%)',      value: 3, color: '#00ff88' },
-  { name: 'Medium (60-80%)',  value: 4, color: '#fbbf24' },
-  { name: 'High (80-95%)',    value: 3, color: '#f97316' },
-  { name: 'Critical (95%+)', value: 2, color: '#ef4444' },
+  { name: 'Low (0–60%)',      value: 3, color: '#00f5a0' },
+  { name: 'Medium (60–80%)',  value: 4, color: '#fbbf24' },
+  { name: 'High (80–95%)',    value: 3, color: '#fb923c' },
+  { name: 'Critical (95%+)', value: 2, color: '#f43f5e' },
 ];
 
 const flowRate = [
-  { time: '14:00', inflow: 320, outflow: 80 },
+  { time: '14:00', inflow: 320, outflow: 80  },
   { time: '15:00', inflow: 480, outflow: 120 },
   { time: '16:00', inflow: 520, outflow: 160 },
   { time: '17:00', inflow: 390, outflow: 240 },
@@ -44,92 +45,120 @@ const flowRate = [
 ];
 
 const tooltipStyle = {
-  backgroundColor: '#0f172a',
+  backgroundColor: 'rgba(8,15,32,0.97)',
   border: '1px solid rgba(255,255,255,0.1)',
-  borderRadius: '10px',
+  borderRadius: '12px',
   fontSize: '11px',
   color: '#fff',
+  boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+  backdropFilter: 'blur(20px)',
 };
 
-const ChartCard = ({ title, subtitle, children, delay = 0 }: any) => (
-  <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}
-    className="bg-white/5 border border-white/10 rounded-2xl p-4">
-    <p className="text-sm font-semibold text-white mb-0.5">{title}</p>
-    {subtitle && <p className="text-xs text-white/40 mb-4">{subtitle}</p>}
-    {children}
-  </motion.div>
-);
+const axisStyle = { fill: 'rgba(255,255,255,0.3)', fontSize: 10 };
+
+function ChartCard({ title, subtitle, children, delay = 0 }: {
+  title: string; subtitle?: string; children: ReactNode; delay?: number;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay, ease: [0.16, 1, 0.3, 1] }}
+      className="rounded-2xl p-5 relative overflow-hidden"
+      style={{
+        background: 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.35)',
+      }}
+    >
+      <div className="absolute top-0 left-6 right-6 h-px"
+        style={{ background: 'linear-gradient(90deg, transparent, rgba(0,212,255,0.3), transparent)' }} />
+      <p className="text-[13px] font-bold text-white mb-0.5">{title}</p>
+      {subtitle && <p className="text-[11px] text-white/35 mb-4">{subtitle}</p>}
+      {children}
+    </motion.div>
+  );
+}
 
 export default function AnalyticsDashboard() {
-  const { kpi, zones } = useEventStore();
+  const { kpi } = useEventStore();
 
   return (
     <div className="space-y-5">
       {/* Summary KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'Peak Hour',    value: '18:00', sub: '8,100 visitors' },
-          { label: 'Peak Zone',    value: kpi.peakZone, sub: 'Highest density' },
-          { label: 'Avg Density',  value: `${kpi.occupancyPercent}%`, sub: 'Across all zones' },
-          { label: 'Flow Rate',    value: `${kpi.flowRate}/min`, sub: 'Current throughput' },
+          { label: 'Peak Hour',   value: '18:00',          sub: '8,100 visitors',   color: '#00d4ff' },
+          { label: 'Peak Zone',   value: kpi.peakZone,     sub: 'Highest density',  color: '#a855f7' },
+          { label: 'Avg Density', value: `${kpi.occupancyPercent}%`, sub: 'Across all zones', color: '#fbbf24' },
+          { label: 'Flow Rate',   value: `${kpi.flowRate}/min`, sub: 'Current throughput', color: '#00f5a0' },
         ].map((s, i) => (
-          <motion.div key={s.label} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.06 }}
-            className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
-            <p className="text-xs text-white/40 uppercase tracking-wider mb-1">{s.label}</p>
-            <p className="text-lg font-bold text-white font-mono">{s.value}</p>
-            <p className="text-xs text-white/30">{s.sub}</p>
+          <motion.div key={s.label}
+            initial={{ opacity: 0, scale: 0.93 }} animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: i * 0.06, ease: [0.16, 1, 0.3, 1] }}
+            className="rounded-2xl p-4 text-center relative overflow-hidden"
+            style={{
+              background: `${s.color}08`,
+              border: `1px solid ${s.color}20`,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+            }}>
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-px"
+              style={{ background: s.color }} />
+            <p className="text-[9px] text-white/35 uppercase tracking-widest mb-2 font-bold">{s.label}</p>
+            <p className="text-lg font-bold font-mono leading-none mb-1" style={{ color: s.color }}>{s.value}</p>
+            <p className="text-[10px] text-white/30">{s.sub}</p>
           </motion.div>
         ))}
       </div>
 
-      {/* Area chart — visitor flow */}
-      <ChartCard title="Visitor Flow Over Time" subtitle="Hourly attendance vs. total capacity" delay={0.1}>
+      {/* Visitor flow */}
+      <ChartCard title="Visitor Flow Over Time" subtitle="Hourly attendance vs. venue capacity" delay={0.1}>
         <ResponsiveContainer width="100%" height={200}>
           <AreaChart data={hourlyData}>
             <defs>
               <linearGradient id="visGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor="#00d4ff" stopOpacity={0.4} />
-                <stop offset="95%" stopColor="#00d4ff" stopOpacity={0.02} />
+                <stop offset="5%"  stopColor="#00d4ff" stopOpacity={0.35} />
+                <stop offset="95%" stopColor="#00d4ff" stopOpacity={0.01} />
               </linearGradient>
               <linearGradient id="capGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor="#a855f7" stopOpacity={0.15} />
-                <stop offset="95%" stopColor="#a855f7" stopOpacity={0.02} />
+                <stop offset="5%"  stopColor="#a855f7" stopOpacity={0.12} />
+                <stop offset="95%" stopColor="#a855f7" stopOpacity={0.01} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-            <XAxis dataKey="hour" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} axisLine={false} tickLine={false} />
+            <XAxis dataKey="hour" tick={axisStyle} axisLine={false} tickLine={false} />
+            <YAxis tick={axisStyle} axisLine={false} tickLine={false} />
             <Tooltip contentStyle={tooltipStyle} />
-            <Legend wrapperStyle={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }} />
+            <Legend wrapperStyle={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }} />
             <Area type="monotone" dataKey="capacity" stroke="#a855f7" fill="url(#capGrad)" strokeWidth={1.5} strokeDasharray="4 3" name="Capacity" />
-            <Area type="monotone" dataKey="visitors" stroke="#00d4ff" fill="url(#visGrad)" strokeWidth={2} name="Visitors" />
+            <Area type="monotone" dataKey="visitors"  stroke="#00d4ff" fill="url(#visGrad)" strokeWidth={2}   name="Visitors" />
           </AreaChart>
         </ResponsiveContainer>
       </ChartCard>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Bar — zone occupancy */}
-        <ChartCard title="Zone Occupancy" subtitle="Average vs. peak occupancy per zone" delay={0.15}>
+        {/* Zone occupancy */}
+        <ChartCard title="Zone Occupancy" subtitle="Average vs. peak per zone" delay={0.15}>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={zoneBar} barGap={2}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-              <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9 }} axisLine={false} tickLine={false} />
-              <YAxis domain={[0, 100]} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} axisLine={false} tickLine={false} unit="%" />
+              <XAxis dataKey="name" tick={{ ...axisStyle, fontSize: 9 }} axisLine={false} tickLine={false} />
+              <YAxis domain={[0, 100]} tick={axisStyle} axisLine={false} tickLine={false} unit="%" />
               <Tooltip contentStyle={tooltipStyle} />
-              <Legend wrapperStyle={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }} />
-              <Bar dataKey="avg"  fill="#00d4ff" radius={[4,4,0,0]} name="Avg %" opacity={0.8} />
-              <Bar dataKey="peak" fill="#f97316" radius={[4,4,0,0]} name="Peak %" opacity={0.8} />
+              <Legend wrapperStyle={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }} />
+              <Bar dataKey="avg"  fill="#00d4ff" radius={[4,4,0,0]} name="Avg %"  opacity={0.8} />
+              <Bar dataKey="peak" fill="#fb923c" radius={[4,4,0,0]} name="Peak %" opacity={0.8} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
 
-        {/* Pie — density distribution */}
-        <ChartCard title="Density Distribution" subtitle="Zones by risk level" delay={0.2}>
-          <div className="flex items-center gap-4">
+        {/* Density distribution */}
+        <ChartCard title="Density Distribution" subtitle="Zones by current risk level" delay={0.2}>
+          <div className="flex items-center gap-6">
             <ResponsiveContainer width="50%" height={180}>
               <PieChart>
-                <Pie data={densityPie} cx="50%" cy="50%" innerRadius={45} outerRadius={75}
-                  dataKey="value" strokeWidth={0}>
+                <Pie data={densityPie} cx="50%" cy="50%" innerRadius={46} outerRadius={72}
+                  dataKey="value" strokeWidth={0} paddingAngle={2}>
                   {densityPie.map((entry, i) => (
                     <Cell key={i} fill={entry.color} opacity={0.85} />
                   ))}
@@ -137,12 +166,13 @@ export default function AnalyticsDashboard() {
                 <Tooltip contentStyle={tooltipStyle} />
               </PieChart>
             </ResponsiveContainer>
-            <div className="space-y-2">
+            <div className="space-y-2.5 flex-1">
               {densityPie.map(d => (
                 <div key={d.name} className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: d.color }} />
-                  <span className="text-xs text-white/60">{d.name}</span>
-                  <span className="text-xs font-bold text-white ml-auto font-mono">{d.value}</span>
+                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                    style={{ background: d.color, boxShadow: `0 0 4px ${d.color}` }} />
+                  <span className="text-[11px] text-white/55 flex-1">{d.name}</span>
+                  <span className="text-[12px] font-bold font-mono" style={{ color: d.color }}>{d.value}</span>
                 </div>
               ))}
             </div>
@@ -150,32 +180,36 @@ export default function AnalyticsDashboard() {
         </ChartCard>
       </div>
 
-      {/* Line — inflow vs outflow */}
-      <ChartCard title="Inflow vs Outflow" subtitle="People entering and leaving per hour" delay={0.25}>
+      {/* Inflow vs outflow */}
+      <ChartCard title="Inflow vs. Outflow" subtitle="People entering and leaving per hour" delay={0.25}>
         <ResponsiveContainer width="100%" height={180}>
           <LineChart data={flowRate}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-            <XAxis dataKey="time" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} axisLine={false} tickLine={false} />
+            <XAxis dataKey="time" tick={axisStyle} axisLine={false} tickLine={false} />
+            <YAxis tick={axisStyle} axisLine={false} tickLine={false} />
             <Tooltip contentStyle={tooltipStyle} />
-            <Legend wrapperStyle={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }} />
-            <Line type="monotone" dataKey="inflow"  stroke="#00ff88" strokeWidth={2.5} dot={false} name="Inflow"  />
-            <Line type="monotone" dataKey="outflow" stroke="#f97316" strokeWidth={2.5} dot={false} name="Outflow" />
+            <Legend wrapperStyle={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }} />
+            <Line type="monotone" dataKey="inflow"  stroke="#00f5a0" strokeWidth={2.5} dot={false} name="Inflow"  />
+            <Line type="monotone" dataKey="outflow" stroke="#fb923c" strokeWidth={2.5} dot={false} name="Outflow" />
           </LineChart>
         </ResponsiveContainer>
       </ChartCard>
 
-      {/* Incident heatmap-style bar */}
-      <ChartCard title="Incidents Per Hour" subtitle="Frequency of alerts and incidents over the event" delay={0.3}>
+      {/* Incidents per hour */}
+      <ChartCard title="Incidents Per Hour" subtitle="Alert and incident frequency over the event" delay={0.3}>
         <ResponsiveContainer width="100%" height={120}>
           <BarChart data={hourlyData}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-            <XAxis dataKey="hour" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
+            <XAxis dataKey="hour" tick={axisStyle} axisLine={false} tickLine={false} />
+            <YAxis tick={axisStyle} axisLine={false} tickLine={false} allowDecimals={false} />
             <Tooltip contentStyle={tooltipStyle} />
             <Bar dataKey="incidents" name="Incidents" radius={[4,4,0,0]}>
               {hourlyData.map((entry, i) => (
-                <Cell key={i} fill={entry.incidents >= 3 ? '#ef4444' : entry.incidents >= 2 ? '#f97316' : '#fbbf24'} />
+                <Cell key={i} fill={
+                  entry.incidents >= 3 ? '#f43f5e'
+                  : entry.incidents >= 2 ? '#fb923c'
+                  : '#fbbf24'
+                } />
               ))}
             </Bar>
           </BarChart>

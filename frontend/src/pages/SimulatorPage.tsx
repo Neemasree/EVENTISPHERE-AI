@@ -5,24 +5,26 @@ import AgentCommsPanel from '../components/agents/AgentCommsPanel';
 
 export default function SimulatorPage() {
   return (
-    <div className="space-y-6 max-w-[1400px] mx-auto">
+    <div className="space-y-5 max-w-[1400px] mx-auto">
       <div>
-        <h1 className="page-header">Scenario Simulator</h1>
-        <p className="page-sub">Trigger live scenarios and watch all 6 agents respond in real time across every panel</p>
+        <h1 className="page-title">Scenario Simulator</h1>
+        <p className="page-subtitle">Trigger live scenarios and watch all 6 agents respond in real time across every panel</p>
       </div>
       <ScenarioSimulator />
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
         <div className="xl:col-span-2">
-          <p className="text-xs text-white/40 uppercase tracking-wider mb-3">Live Venue Response</p>
+          <p className="section-label">Live Venue Response</p>
           <DigitalTwinVenue />
         </div>
-        <div className="space-y-6">
+        <div className="space-y-5">
           <div>
-            <p className="text-xs text-white/40 uppercase tracking-wider mb-3">Active Alerts</p>
-            <AlertCenter maxItems={4} />
+            <p className="section-label">Active Alerts</p>
+            <div className="glass-card p-4">
+              <AlertCenter maxItems={4} />
+            </div>
           </div>
           <div>
-            <p className="text-xs text-white/40 uppercase tracking-wider mb-3">Agent Messages</p>
+            <p className="section-label">Agent Messages</p>
             <AgentCommsPanel compact />
           </div>
         </div>
