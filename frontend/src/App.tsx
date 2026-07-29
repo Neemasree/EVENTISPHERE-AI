@@ -17,6 +17,8 @@ import ReplayPage from './pages/ReplayPage';
 import TicketsPage from './pages/TicketsPage';
 import EmergencyPage from './pages/EmergencyPage';
 
+import VenueBuilderPage from './pages/VenueBuilderPage';
+
 function App() {
   const [loaded, setLoaded] = useState(false);
 
@@ -44,6 +46,7 @@ function App() {
             <Route path="/replay"       element={<ReplayPage />} />
             <Route path="/tickets"      element={<TicketsPage />} />
             <Route path="/emergency"    element={<EmergencyPage />} />
+            <Route path="/builder"      element={<VenueBuilderPage />} />
             <Route path="*"             element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </AppShell>

@@ -1,5 +1,8 @@
 from flask import Flask
 from flask_cors import CORS
+from dotenv import load_dotenv
+load_dotenv()
+
 from routes.crowd     import crowd_bp
 from routes.agents    import agents_bp
 from routes.zones     import zones_bp
@@ -7,6 +10,7 @@ from routes.alerts    import alerts_bp
 from routes.analytics import analytics_bp
 from routes.simulator import simulator_bp
 from routes.tickets   import tickets_bp
+from routes.api       import api_bp
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
@@ -19,6 +23,7 @@ app.register_blueprint(alerts_bp,    url_prefix="/alerts")
 app.register_blueprint(analytics_bp, url_prefix="/analytics")
 app.register_blueprint(simulator_bp, url_prefix="/simulator")
 app.register_blueprint(tickets_bp,   url_prefix="/tickets")
+app.register_blueprint(api_bp)  # root-level: /emergency, /crowd, /ask
 
 @app.route("/health")
 def health():
@@ -29,7 +34,7 @@ def root():
     return {
         "service":   "EventiSphere AI",
         "status":    "running",
-        "endpoints": ["/health", "/crowd", "/agents", "/zones", "/alerts", "/analytics", "/simulator", "/tickets"],
+        "endpoints": ["/health", "/crowd", "/agents", "/zones", "/alerts", "/analytics", "/simulator", "/tickets", "/emergency", "/ask"],
     }
 
 if __name__ == "__main__":

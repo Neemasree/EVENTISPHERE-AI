@@ -98,6 +98,7 @@ export interface EventState {
   addNotification: (n: Notification) => void;
   addEvent: (e: Event) => void;
   setActiveEvent: (id: string) => void;
+  setZones: (zones: Zone[]) => void;
   triggerScenario: (scenario: ScenarioType) => void;
   addChatMessage: (msg: ChatMessage) => void;
   toggleMute: () => void;
@@ -159,6 +160,10 @@ export const useEventStore = create<EventState>((set, get) => ({
     const ev = s.events.find(e => e.id === id);
     if (!ev) return {};
     return { activeEventId: id, zones: ev.zones.length ? ev.zones : s.zones };
+  }),
+  setZones: (zones) => set(s => {
+    const updatedEvents = s.events.map(e => e.id === s.activeEventId ? { ...e, zones } : e);
+    return { zones, events: updatedEvents, kpi: computeKPI(zones, s.alerts, s.recommendations) };
   }),
 
   applyRecommendation: (id) => set(s => {

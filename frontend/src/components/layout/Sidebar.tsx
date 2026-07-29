@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, MapPin, Flame, Users, Bell, BarChart3,
   Bot, Zap, Clock, BellRing, AlertTriangle, Play,
-  ChevronLeft, Shield, Activity, Ticket, Ambulance, Trophy
+  ChevronLeft, Shield, Activity, Ticket, Ambulance, Trophy, Layers
 } from 'lucide-react';
 import { useEventStore } from '../../store/eventStore';
 import SimulationDemo from '../demo/SimulationDemo';
@@ -24,6 +24,7 @@ const navGroups = [
     label: 'Operations',
     items: [
       { to: '/crowd',         icon: Users,         label: 'Crowd Intel'   },
+      { to: '/builder',       icon: Layers,        label: 'Twin Builder'  },
       { to: '/tickets',       icon: Ticket,        label: 'Tickets'       },
       { to: '/emergency',     icon: Ambulance,     label: 'Emergency'     },
       { to: '/alerts',        icon: Bell,          label: 'Alerts',       badge: 'alerts' },
