@@ -1,5 +1,8 @@
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, X, ChevronLeft, Trash2 } from 'lucide-react';
 import type { Zone, ZoneType } from '../../types';
+import { TOOLS } from './BuilderToolbar';
 
 export interface Template {
   id: string;
@@ -115,33 +118,295 @@ export const TEMPLATES: Template[] = [
   },
 ];
 
+// ── Zone row used inside the custom template builder ──────────────────────────
+interface ZoneRow {
+  id: string;
+  name: string;
+  type: ZoneType;
+  maxCapacity: number;
+}
+
+const ICON_OPTIONS = ['🎵','🏟️','🏢','🎪','🎓','🎭','🎨','🏋️','🎤','🎡','🎠','🏖️','🌆','🎯','✦'];
+const COLOR_OPTIONS = ['#a855f7','#00d4ff','#00f5a0','#fb923c','#fbbf24','#f43f5e','#60a5fa','#e879f9','#34d399','#f97316'];
+
+// auto-layout: place zones in a simple grid so they don't overlap
+function autoLayout(rows: ZoneRow[]): Template['zones'] {
+  const COLS = 3;
+  const W = 140, H = 60, GAP_X = 20, GAP_Y = 20, START_X = 20, START_Y = 20;
+  return rows.map((r, i) => ({
+    id: `cz_${r.id}`,
+    name: r.name,
+    type: r.type,
+    maxCapacity: r.maxCapacity,
+    x: START_X + (i % COLS) * (W + GAP_X),
+    y: START_Y + Math.floor(i / COLS) * (H + GAP_Y),
+    width: W,
+    height: H,
+  }));
+}
+
 interface Props {
   onSelect: (template: Template) => void;
 }
 
 export default function TemplateSelector({ onSelect }: Props) {
+  const [customTemplates, setCustomTemplates] = useState<Template[]>([]);
+  const [creating, setCreating] = useState(false);
+
+  // form state
+  const [label, setLabel]       = useState('');
+  const [icon, setIcon]         = useState('✦');
+  const [color, setColor]       = useState('#00d4ff');
+  const [desc, setDesc]         = useState('');
+  const [zoneRows, setZoneRows] = useState<ZoneRow[]>([
+    { id: '1', name: '', type: 'gate', maxCapacity: 500 },
+  ]);
+  const [err, setErr] = useState('');
+
+  const addZoneRow = () =>
+    setZoneRows(r => [...r, { id: `${Date.now()}`, name: '', type: 'gate', maxCapacity: 500 }]);
+
+  const removeZoneRow = (id: string) =>
+    setZoneRows(r => r.filter(z => z.id !== id));
+
+  const updateZoneRow = (id: string, patch: Partial<ZoneRow>) =>
+    setZoneRows(r => r.map(z => z.id === id ? { ...z, ...patch } : z));
+
+  const handleSave = () => {
+    if (!label.trim()) return setErr('Template name is required.');
+    const validRows = zoneRows.filter(r => r.name.trim());
+    const newTemplate: Template = {
+      id: `custom_${Date.now()}`,
+      label: label.trim(),
+      icon,
+      color,
+      description: desc.trim() || `${validRows.length} custom zones`,
+      zones: autoLayout(validRows),
+    };
+    setCustomTemplates(p => [...p, newTemplate]);
+    // reset form
+    setLabel(''); setIcon('✦'); setColor('#00d4ff'); setDesc('');
+    setZoneRows([{ id: '1', name: '', type: 'gate', maxCapacity: 500 }]);
+    setErr('');
+    setCreating(false);
+  };
+
+  const deleteCustom = (id: string) =>
+    setCustomTemplates(p => p.filter(t => t.id !== id));
+
+  const allTemplates = [...TEMPLATES, ...customTemplates];
+
+  // ── Creator view ────────────────────────────────────────────────────────────
+  if (creating) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+        className="rounded-2xl p-5 space-y-5"
+        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <p className="text-[14px] font-bold text-white">Create Custom Template</p>
+          <button onClick={() => setCreating(false)}
+            className="flex items-center gap-1 text-[11px] text-white/35 hover:text-white/70 transition-colors">
+            <ChevronLeft size={12} /> Back
+          </button>
+        </div>
+
+        {/* Name + Icon + Color */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mb-1.5">Template Name *</p>
+            <input value={label} onChange={e => setLabel(e.target.value)}
+              placeholder="e.g. Marathon Event"
+              className="input-field text-sm w-full" />
+          </div>
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mb-1.5">Description</p>
+            <input value={desc} onChange={e => setDesc(e.target.value)}
+              placeholder="Short description…"
+              className="input-field text-sm w-full" />
+          </div>
+        </div>
+
+        {/* Icon picker */}
+        <div>
+          <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mb-2">Icon</p>
+          <div className="flex flex-wrap gap-2">
+            {ICON_OPTIONS.map(ic => (
+              <button key={ic} onClick={() => setIcon(ic)}
+                className="w-9 h-9 rounded-xl text-lg flex items-center justify-center transition-all"
+                style={{
+                  background: icon === ic ? `${color}20` : 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${icon === ic ? color : 'rgba(255,255,255,0.08)'}`,
+                  boxShadow: icon === ic ? `0 0 10px ${color}40` : 'none',
+                }}>
+                {ic}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Color picker */}
+        <div>
+          <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mb-2">Accent Color</p>
+          <div className="flex flex-wrap gap-2">
+            {COLOR_OPTIONS.map(c => (
+              <button key={c} onClick={() => setColor(c)}
+                className="w-7 h-7 rounded-lg transition-all"
+                style={{
+                  background: c,
+                  border: `2px solid ${color === c ? 'white' : 'transparent'}`,
+                  boxShadow: color === c ? `0 0 10px ${c}80` : 'none',
+                  transform: color === c ? 'scale(1.15)' : 'scale(1)',
+                }} />
+            ))}
+            {/* custom hex */}
+            <input type="color" value={color} onChange={e => setColor(e.target.value)}
+              className="w-7 h-7 rounded-lg cursor-pointer border-0 p-0"
+              style={{ background: 'transparent' }}
+              title="Custom color" />
+          </div>
+        </div>
+
+        {/* Zone rows */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">Zones</p>
+            <button onClick={addZoneRow}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all hover:scale-105"
+              style={{ background: `${color}15`, border: `1px solid ${color}35`, color }}>
+              <Plus size={10} /> Add Zone
+            </button>
+          </div>
+
+          <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+            {zoneRows.map((row, i) => (
+              <div key={row.id} className="flex items-center gap-2">
+                <span className="text-[10px] font-mono text-white/20 w-4 flex-shrink-0">{i + 1}</span>
+
+                {/* Name */}
+                <input value={row.name} onChange={e => updateZoneRow(row.id, { name: e.target.value })}
+                  placeholder="Zone name"
+                  className="input-field text-[12px] flex-1 min-w-0 py-1.5" />
+
+                {/* Type */}
+                <select value={row.type}
+                  onChange={e => updateZoneRow(row.id, { type: e.target.value as ZoneType })}
+                  className="input-field text-[11px] py-1.5 flex-shrink-0"
+                  style={{ background: 'rgba(255,255,255,0.05)', color: 'white', width: 110 }}>
+                  {TOOLS.map(t => (
+                    <option key={t.type} value={t.type} style={{ background: '#0a1628' }}>
+                      {t.icon} {t.label}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Capacity */}
+                <input type="number" min={1} value={row.maxCapacity}
+                  onChange={e => updateZoneRow(row.id, { maxCapacity: Math.max(1, +e.target.value) })}
+                  className="input-field text-[11px] font-mono py-1.5 flex-shrink-0"
+                  style={{ width: 80 }}
+                  placeholder="Cap" />
+
+                <button onClick={() => removeZoneRow(row.id)}
+                  className="flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center transition-colors hover:bg-red-500/20"
+                  style={{ color: '#f43f5e' }}>
+                  <X size={11} />
+                </button>
+              </div>
+            ))}
+          </div>
+          <p className="text-[9px] text-white/20 mt-1.5">Zones are auto-arranged on the canvas — you can reposition them in the builder.</p>
+        </div>
+
+        {err && (
+          <p className="text-[11px] px-3 py-2 rounded-xl"
+            style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.2)', color: '#f87171' }}>
+            ⚠ {err}
+          </p>
+        )}
+
+        {/* Actions */}
+        <div className="flex gap-2 pt-1">
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+            onClick={handleSave}
+            className="flex-1 py-2.5 rounded-xl text-[13px] font-bold"
+            style={{ background: `linear-gradient(135deg, ${color}, ${color}99)`, color: '#020409', boxShadow: `0 0 20px ${color}40` }}>
+            Save Template
+          </motion.button>
+          <button onClick={() => setCreating(false)}
+            className="px-4 py-2.5 rounded-xl text-[12px] text-white/40 hover:text-white/70 transition-colors"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            Cancel
+          </button>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // ── Grid view ───────────────────────────────────────────────────────────────
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {TEMPLATES.map((t, i) => (
-          <motion.button key={t.id}
-            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.06 }}
-            whileHover={{ y: -3, scale: 1.02 }} whileTap={{ scale: 0.97 }}
-            onClick={() => onSelect(t)}
-            className="flex flex-col items-start p-4 rounded-2xl text-left transition-all"
-            style={{ background: `${t.color}08`, border: `1px solid ${t.color}25` }}>
-            <span className="text-3xl mb-3">{t.icon}</span>
-            <p className="text-[13px] font-bold text-white mb-1">{t.label}</p>
-            <p className="text-[10px] text-white/35 leading-relaxed">{t.description}</p>
-            {t.zones.length > 0 && (
-              <span className="mt-3 text-[9px] font-bold px-2 py-0.5 rounded-full"
-                style={{ background: `${t.color}15`, color: t.color, border: `1px solid ${t.color}30` }}>
-                {t.zones.length} zones
-              </span>
-            )}
-          </motion.button>
-        ))}
+        {allTemplates.map((t, i) => {
+          const isCustom = t.id.startsWith('custom_');
+          return (
+            <motion.div key={t.id} className="relative group"
+              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.04 }}>
+              <motion.button
+                whileHover={{ y: -3, scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                onClick={() => onSelect(t)}
+                className="w-full flex flex-col items-start p-4 rounded-2xl text-left transition-all"
+                style={{ background: `${t.color}08`, border: `1px solid ${t.color}25` }}>
+                <span className="text-3xl mb-3">{t.icon}</span>
+                <p className="text-[13px] font-bold text-white mb-1">{t.label}</p>
+                <p className="text-[10px] text-white/35 leading-relaxed">{t.description}</p>
+                <div className="flex items-center gap-2 mt-3">
+                  {t.zones.length > 0 && (
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full"
+                      style={{ background: `${t.color}15`, color: t.color, border: `1px solid ${t.color}30` }}>
+                      {t.zones.length} zones
+                    </span>
+                  )}
+                  {isCustom && (
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full"
+                      style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                      custom
+                    </span>
+                  )}
+                </div>
+              </motion.button>
+
+              {/* Delete button for custom templates */}
+              {isCustom && (
+                <button
+                  onClick={e => { e.stopPropagation(); deleteCustom(t.id); }}
+                  className="absolute top-2 right-2 w-6 h-6 rounded-lg items-center justify-center hidden group-hover:flex transition-all"
+                  style={{ background: 'rgba(244,63,94,0.15)', border: '1px solid rgba(244,63,94,0.3)', color: '#f43f5e' }}>
+                  <Trash2 size={10} />
+                </button>
+              )}
+            </motion.div>
+          );
+        })}
+
+        {/* Create custom card */}
+        <motion.button
+          initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: allTemplates.length * 0.04 }}
+          whileHover={{ y: -3, scale: 1.02 }} whileTap={{ scale: 0.97 }}
+          onClick={() => setCreating(true)}
+          className="flex flex-col items-start p-4 rounded-2xl text-left transition-all"
+          style={{ background: 'rgba(0,212,255,0.04)', border: '1px dashed rgba(0,212,255,0.25)' }}>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
+            style={{ background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.2)' }}>
+            <Plus size={18} style={{ color: '#00d4ff' }} />
+          </div>
+          <p className="text-[13px] font-bold text-white mb-1">Create Custom</p>
+          <p className="text-[10px] text-white/35 leading-relaxed">Define your own zones, layout and style</p>
+        </motion.button>
       </div>
     </div>
   );

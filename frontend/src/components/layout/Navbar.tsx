@@ -6,7 +6,8 @@ import { useEventStore } from '../../store/eventStore';
 import { riskColor } from '../../utils/helpers';
 
 export default function Navbar() {
-  const { kpi, alerts, isMuted, toggleMute, notifications } = useEventStore();
+  const { kpi, alerts, isMuted, toggleMute, notifications, events, activeEventId } = useEventStore();
+  const activeEvent = events.find(e => e.id === activeEventId);
   const [time, setTime] = useState(new Date());
 
   const navigate = useNavigate();
@@ -34,9 +35,11 @@ export default function Navbar() {
       <div className="flex items-center gap-2.5 flex-1 min-w-0">
         <span className="live-dot flex-shrink-0" />
         <p className="text-[13px] font-semibold text-white truncate leading-none">
-          Summer Music Festival
+          {activeEvent?.name ?? 'EventiSphere'}
         </p>
-        <span className="text-[10px] text-white/30 hidden sm:block flex-shrink-0">· Arena Central</span>
+        {activeEvent?.location && (
+          <span className="text-[10px] text-white/30 hidden sm:block flex-shrink-0 truncate">· {activeEvent.location}</span>
+        )}
       </div>
 
       {/* Center — risk pill + crowd count */}

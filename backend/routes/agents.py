@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from models.data_store import AGENTS, AGENT_MESSAGES
+from models.data_store import get_all, get_one, insert_one, AGENTS, AGENT_MESSAGES
 from utils.ai_engine import run_decision_engine
 from datetime import datetime
 import uuid
@@ -8,7 +8,7 @@ agents_bp = Blueprint("agents", __name__)
 
 @agents_bp.route("/status", methods=["GET"])
 def agents_status():
-    return jsonify({"agents": AGENTS})
+    return jsonify({"agents": get_all("agents", AGENTS)})
 
 @agents_bp.route("/decisions", methods=["GET"])
 def agent_decisions():
@@ -27,9 +27,10 @@ def agent_message():
         "type":      data.get("type", "info"),
         "timestamp": datetime.utcnow().isoformat() + "Z",
     }
-    AGENT_MESSAGES.append(msg)
+    insert_one("agent_messages", AGENT_MESSAGES, msg)
     return jsonify(msg), 201
 
 @agents_bp.route("/messages", methods=["GET"])
 def agent_messages():
-    return jsonify({"messages": AGENT_MESSAGES[-50:]})
+    msgs = get_all("agent_messages", AGENT_MESSAGES)
+    return jsonify({"messages": msgs[-50:]})

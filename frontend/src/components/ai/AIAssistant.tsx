@@ -1,56 +1,194 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Send, Bot, Minimize2, Sparkles, ChevronDown } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { useEventStore } from '../../store/eventStore';
 import { formatTime } from '../../utils/helpers';
 
 const quickQuestions = [
   'Biggest risk right now?',
-  'Gate A status?',
-  'Crowd prediction 10min',
+  'What should I do in the next 15 min?',
+  'Compare Gate A and Gate B',
   'Top recommendation?',
 ];
 
-function getAIResponse(question: string, store: ReturnType<typeof useEventStore.getState>): string {
-  const q = question.toLowerCase();
-  const { zones, kpi, alerts, predictions } = store;
-  const critical = zones.filter(z => z.riskLevel === 'critical');
-  const highRisk  = zones.filter(z => z.riskLevel === 'high');
+const RISK_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
 
-  if (q.includes('gate a')) {
-    const gateA = zones.find(z => z.id === 'gate_a');
-    return `Gate A currently has ${gateA?.currentCrowd} visitors (${gateA?.occupancy}% capacity). A bus arrived 8 minutes ago adding ~180 passengers. Recommend opening Gate B and C — expected wait time reduction: 62%.`;
+function buildEventContext(store: ReturnType<typeof useEventStore.getState>) {
+  const { zones, kpi, alerts, predictions, recommendations, incidents, events, activeEventId } = store;
+  const activeEvent = events.find(e => e.id === activeEventId);
+
+  const activeAlerts = alerts.filter(a => !a.dismissed);
+  const criticalZones = zones.filter(z => z.riskLevel === 'critical');
+  const highZones     = zones.filter(z => z.riskLevel === 'high');
+  const pendingRecs   = recommendations.filter(r => !r.applied);
+  const openIncidents = incidents.filter(i => !i.resolved);
+
+  // Sort zones: critical first, then high, medium, low — LLM reads top-down
+  const sortedZones = [...zones].sort(
+    (a, b) => (RISK_ORDER[a.riskLevel] ?? 4) - (RISK_ORDER[b.riskLevel] ?? 4)
+  );
+
+  // Sort recommendations by confidence descending
+  const sortedRecs = [...pendingRecs].sort((a, b) => b.confidence - a.confidence);
+
+  // Sort alerts: critical → high → medium → low
+  const SEV_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+  const sortedAlerts = [...activeAlerts].sort(
+    (a, b) => (SEV_ORDER[a.severity] ?? 4) - (SEV_ORDER[b.severity] ?? 4)
+  );
+
+  return {
+    // ── Operational summary — gives the LLM immediate situational awareness ──
+    operationalSummary: {
+      event:           activeEvent?.name ?? 'Unknown Event',
+      overallRisk:     kpi.riskLevel,
+      activeVisitors:  kpi.currentCrowd,
+      totalCapacity:   kpi.totalCapacity,
+      occupancyPercent: kpi.occupancyPercent,
+      avgWaitTimeMin:  kpi.avgWaitTime,
+      peakZone:        kpi.peakZone,
+      flowRatePerMin:  kpi.flowRate,
+      activeAlerts:    activeAlerts.length,
+      criticalZones:   criticalZones.length,
+      highRiskZones:   highZones.length,
+      openIncidents:   openIncidents.length,
+      pendingActions:  pendingRecs.length,
+      topRecommendation: sortedRecs[0]?.title ?? null,
+    },
+
+    // ── Zones sorted by severity (critical first) ──
+    zones: sortedZones.map(z => {
+      const pred = predictions.find(p => p.zoneId === z.id);
+      return {
+        name:              z.name,
+        type:              z.type,
+        currentOccupancy:  z.currentCrowd,
+        capacity:          z.maxCapacity,
+        occupancyPercent:  z.occupancy,
+        waitingTimeMin:    z.waitingTime,
+        riskLevel:         z.riskLevel,
+        // inline prediction so the LLM sees zone + forecast together
+        forecast: pred ? {
+          in5min:     pred.in5min,
+          in10min:    pred.in10min,
+          in30min:    pred.in30min,
+          risk:       pred.predictedRisk,
+          confidence: pred.confidence,
+        } : null,
+      };
+    }),
+
+    // ── Alerts sorted by severity ──
+    alerts: sortedAlerts.slice(0, 6).map(a => ({
+      severity: a.severity,
+      title:    a.title,
+      message:  a.message,
+      zone:     a.zone ?? null,
+    })),
+
+    // ── Recommendations sorted by confidence ──
+    recommendations: sortedRecs.slice(0, 4).map(r => ({
+      priority:          sortedRecs.indexOf(r) + 1,
+      title:             r.title,
+      description:       r.description,
+      action:            r.action,
+      zone:              r.zone,
+      expectedReduction: r.expectedReduction,
+      estimatedTimeMin:  r.estimatedTime,
+      confidence:        r.confidence,
+    })),
+
+    // ── Open incidents only ──
+    incidents: openIncidents.slice(0, 3).map(i => ({
+      severity:    i.severity,
+      zone:        i.zone,
+      description: i.description,
+    })),
+
+    // ── KPIs for comparison questions ──
+    kpis: {
+      totalCrowd:       kpi.currentCrowd,
+      totalCapacity:    kpi.totalCapacity,
+      occupancyPercent: kpi.occupancyPercent,
+      avgWaitTimeMin:   kpi.avgWaitTime,
+      flowRatePerMin:   kpi.flowRate,
+      riskLevel:        kpi.riskLevel,
+      activeAlerts:     kpi.activeAlerts,
+    },
+  };
+}
+
+async function fetchAIResponse(question: string, store: ReturnType<typeof useEventStore.getState>): Promise<string> {
+  const eventContext = buildEventContext(store);
+  try {
+    const res = await fetch('/api/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question, eventContext }),
+    });
+    if (!res.ok) throw new Error('Backend unavailable');
+    const data = await res.json();
+    return data.answer ?? 'No response received from operations center.';
+  } catch {
+    // Offline structured fallback — reads from enriched context shape
+    const ctx = buildEventContext(store);
+    const s   = ctx.operationalSummary;
+    const topZone = ctx.zones[0];  // already sorted critical-first
+    const topRec  = ctx.recommendations[0];
+    const q = question.toLowerCase();
+
+    if (q.includes('risk') || q.includes('biggest') || q.includes('status') || q.includes('summar')) {
+      return [
+        `## 🚨 Situation Summary`,
+        `**Overall Risk:** ${s.overallRisk.toUpperCase()} — ${s.criticalZones} critical zone(s), ${s.highRiskZones} high-risk zone(s)`,
+        `**Active Visitors:** ${s.activeVisitors.toLocaleString()} / ${s.totalCapacity.toLocaleString()} (${s.occupancyPercent}%)`,
+        `**Primary Issue:** ${topZone?.name ?? 'N/A'} at ${topZone?.occupancyPercent ?? 'N/A'}% (${topZone?.currentOccupancy ?? 'N/A'} / ${topZone?.capacity ?? 'N/A'}) — Risk: ${topZone?.riskLevel?.toUpperCase() ?? 'N/A'}`,
+        `**Active Alerts:** ${s.activeAlerts} | **Open Incidents:** ${s.openIncidents} | **Avg Wait:** ${s.avgWaitTimeMin} min`,
+        `**Recommended Actions:**\n1. ${topRec?.action ?? 'Deploy crowd marshals to peak zones.'}\n2. Monitor all high-risk zones every 2 minutes.`,
+        `**Expected Improvement:** ${topRec?.expectedReduction ?? 'N/A'}% crowd density reduction.`,
+        `**Confidence:** ${topRec?.confidence ?? 'N/A'}%`,
+      ].join('\n\n');
+    }
+    if (q.includes('recommend') || q.includes('first') || q.includes('implement')) {
+      return [
+        `## 🎯 Priority #1 Recommendation`,
+        `**Action:** ${topRec?.title ?? 'N/A'}`,
+        `**Reason:** ${topRec?.description ?? 'N/A'}`,
+        `**What to do:** ${topRec?.action ?? 'N/A'}`,
+        `**Expected Improvement:** ${topRec?.expectedReduction ?? 'N/A'}% reduction — deployable in ${topRec?.estimatedTimeMin ?? 'N/A'} min.`,
+        `**Confidence:** ${topRec?.confidence ?? 'N/A'}%`,
+        ctx.recommendations[1] ? `**Next:** ${ctx.recommendations[1].title} (${ctx.recommendations[1].confidence}% confidence)` : '',
+      ].filter(Boolean).join('\n\n');
+    }
+    if (q.includes('compare')) {
+      const zA = ctx.zones.find(z => z.name.toLowerCase().includes('gate a'));
+      const zB = ctx.zones.find(z => z.name.toLowerCase().includes('gate b'));
+      if (zA && zB) return [
+        `## ⚖️ Gate Comparison`,
+        `**Gate A:** ${zA.currentOccupancy} / ${zA.capacity} (${zA.occupancyPercent}%) — Risk: ${zA.riskLevel.toUpperCase()} — Wait: ${zA.waitingTimeMin} min`,
+        `**Gate B:** ${zB.currentOccupancy} / ${zB.capacity} (${zB.occupancyPercent}%) — Risk: ${zB.riskLevel.toUpperCase()} — Wait: ${zB.waitingTimeMin} min`,
+        `**Assessment:** Gate A has ${zA.occupancyPercent - zB.occupancyPercent}% higher load. Redirecting arrivals to Gate B would reduce Gate A congestion.`,
+      ].join('\n\n');
+    }
+    return [
+      `## 📊 Operational Status`,
+      `**Event:** ${s.event} | **Risk:** ${s.overallRisk.toUpperCase()}`,
+      `**Crowd:** ${s.activeVisitors.toLocaleString()} / ${s.totalCapacity.toLocaleString()} (${s.occupancyPercent}%)`,
+      `**Peak Zone:** ${s.peakZone} | **Avg Wait:** ${s.avgWaitTimeMin} min | **Flow:** ${s.flowRatePerMin}/min`,
+      `**Alerts:** ${s.activeAlerts} active | **Incidents:** ${s.openIncidents} open`,
+      `**Top Action:** ${topRec?.action ?? 'All zones stable — continue monitoring.'}`,
+    ].join('\n\n');
   }
-  if (q.includes('biggest risk') || q.includes('risk right now')) {
-    if (critical.length > 0) return `Biggest risk: **${critical[0].name}** at ${critical[0].occupancy}% capacity. ${critical[0].waitingTime}-min wait time. Immediate action recommended.`;
-    if (highRisk.length > 0) return `Highest risk: **${highRisk[0].name}** at ${highRisk[0].occupancy}% capacity. Congestion predicted to peak in ~6 minutes.`;
-    return `Overall risk is ${kpi.riskLevel}. All zones within manageable limits. Continue monitoring.`;
-  }
-  if (q.includes('recommend')) {
-    const fc = zones.find(z => z.id === 'food_court');
-    return `Top recommendation: Open Food Stall 3 in the Food Court. Currently at ${fc?.occupancy}% capacity. Expected density reduction: 28%. Confidence: 97%.`;
-  }
-  if (q.includes('predict') || q.includes('10min') || q.includes('10 min')) {
-    const pred = predictions[0];
-    if (pred) return `In 10 minutes: ${pred.zoneName} predicted at ${pred.in10min} visitors (cap ${pred.capacity}). Risk: ${pred.predictedRisk.toUpperCase()}. Confidence: ${pred.confidence}%.`;
-  }
-  if (q.includes('crowd') || q.includes('people')) {
-    return `Current crowd: ${kpi.currentCrowd.toLocaleString()} visitors at ${kpi.occupancyPercent}% occupancy. Flow rate: ${kpi.flowRate}/min. Peak zone: ${kpi.peakZone}.`;
-  }
-  if (q.includes('parking')) {
-    const parkA = zones.find(z => z.id === 'parking_a');
-    return `Parking A: ${parkA?.occupancy}% full with ${parkA?.currentCrowd} vehicles. Recommend routing to Parking B (currently 36%). Signage update: ~2 min deployment.`;
-  }
-  return `Monitoring ${zones.length} zones. Overall risk: ${kpi.riskLevel.toUpperCase()}. ${kpi.activeAlerts} active alerts. Ask about any specific zone, risk, or recommendation.`;
 }
 
 export default function AIAssistant() {
-  const [open,      setOpen]      = useState(false);
+  const [open, setOpen] = useState(false);
   const [minimized, setMinimized] = useState(false);
-  const [input,     setInput]     = useState('');
-  const [typing,    setTyping]    = useState(false);
+  const [input, setInput] = useState('');
+  const [typing, setTyping] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
-  const store  = useEventStore();
+  const store = useEventStore();
   const { chatMessages, addChatMessage } = store;
 
   useEffect(() => {
@@ -63,14 +201,13 @@ export default function AIAssistant() {
     setInput('');
     addChatMessage({ id: `u_${Date.now()}`, role: 'user', content: msg, timestamp: new Date() });
     setTyping(true);
-    await new Promise(r => setTimeout(r, 600 + Math.random() * 700));
+    const answer = await fetchAIResponse(msg, store);
     setTyping(false);
-    addChatMessage({ id: `a_${Date.now()}`, role: 'assistant', content: getAIResponse(msg, store), timestamp: new Date() });
+    addChatMessage({ id: `a_${Date.now()}`, role: 'assistant', content: answer, timestamp: new Date() });
   };
 
   return (
     <>
-      {/* ── FAB ── */}
       <AnimatePresence>
         {!open && (
           <motion.button
@@ -88,7 +225,6 @@ export default function AIAssistant() {
             }}
           >
             <Bot size={22} className="text-white" />
-            {/* Ripple rings */}
             <motion.div className="absolute inset-0 rounded-2xl"
               style={{ border: '2px solid rgba(0,212,255,0.5)' }}
               animate={{ scale: [1, 1.5], opacity: [0.6, 0] }}
@@ -101,7 +237,6 @@ export default function AIAssistant() {
         )}
       </AnimatePresence>
 
-      {/* ── Chat window ── */}
       <AnimatePresence>
         {open && (
           <motion.div
@@ -109,7 +244,7 @@ export default function AIAssistant() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.88, y: 16 }}
             transition={{ type: 'spring', stiffness: 350, damping: 28 }}
-            className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-40 w-80 sm:w-[380px] rounded-2xl overflow-hidden"
+            className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-40 w-80 sm:w-[420px] rounded-2xl overflow-hidden"
             style={{
               background: 'rgba(8,16,32,0.97)',
               border: '1px solid rgba(255,255,255,0.1)',
@@ -118,7 +253,6 @@ export default function AIAssistant() {
               backdropFilter: 'blur(40px)',
             }}
           >
-            {/* Top accent */}
             <div className="absolute top-0 left-0 right-0 h-px"
               style={{ background: 'linear-gradient(90deg, transparent, #00d4ff, #a855f7, transparent)' }} />
 
@@ -141,11 +275,10 @@ export default function AIAssistant() {
                   <p className="text-[13px] font-bold text-white leading-none">EventiSphere AI</p>
                   <div className="flex items-center gap-1 mt-0.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                    <span className="text-[9px] text-emerald-400 font-mono">Online · Monitoring</span>
+                    <span className="text-[9px] text-emerald-400 font-mono">Operations Command · Live</span>
                   </div>
                 </div>
               </div>
-
               <div className="flex items-center gap-1">
                 <button onClick={() => setMinimized(v => !v)} className="btn-icon w-7 h-7 rounded-lg">
                   {minimized ? <ChevronDown size={12} /> : <Minimize2 size={12} />}
@@ -165,7 +298,7 @@ export default function AIAssistant() {
                   transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
                 >
                   {/* Messages */}
-                  <div className="h-64 overflow-y-auto p-3 space-y-2.5">
+                  <div className="h-80 overflow-y-auto p-3 space-y-2.5">
                     {chatMessages.map(msg => (
                       <motion.div
                         key={msg.id}
@@ -174,15 +307,15 @@ export default function AIAssistant() {
                         className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                       >
                         {msg.role === 'assistant' && (
-                          <div className="w-6 h-6 rounded-lg flex items-center justify-center mr-1.5 flex-shrink-0 mt-auto mb-0.5"
+                          <div className="w-6 h-6 rounded-lg flex items-center justify-center mr-1.5 flex-shrink-0 mt-1"
                             style={{ background: 'rgba(0,212,255,0.12)', border: '1px solid rgba(0,212,255,0.2)' }}>
                             <Sparkles size={11} style={{ color: '#00d4ff' }} />
                           </div>
                         )}
-                        <div className={`max-w-[82%] px-3 py-2.5 rounded-xl text-[12px] leading-relaxed ${
+                        <div className={`max-w-[88%] px-3 py-2.5 rounded-xl text-[11.5px] leading-relaxed ${
                           msg.role === 'user'
                             ? 'rounded-br-sm text-white'
-                            : 'rounded-bl-sm text-white/80'
+                            : 'rounded-bl-sm text-white/85'
                         }`}
                           style={msg.role === 'user' ? {
                             background: 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(0,212,255,0.1))',
@@ -191,7 +324,18 @@ export default function AIAssistant() {
                             background: 'rgba(255,255,255,0.05)',
                             border: '1px solid rgba(255,255,255,0.09)',
                           }}>
-                          {msg.content}
+                          {msg.role === 'assistant' ? (
+                            <div className="prose prose-invert prose-sm max-w-none
+                              [&_h2]:text-[12px] [&_h2]:font-bold [&_h2]:text-cyan-300 [&_h2]:mb-1 [&_h2]:mt-0
+                              [&_strong]:text-white/90 [&_strong]:font-semibold
+                              [&_p]:mb-1.5 [&_p]:text-white/80
+                              [&_ol]:pl-4 [&_ol]:mb-1 [&_li]:mb-0.5
+                              [&_ul]:pl-4 [&_ul]:mb-1">
+                              <ReactMarkdown>{msg.content}</ReactMarkdown>
+                            </div>
+                          ) : (
+                            msg.content
+                          )}
                           <p className="text-[9px] text-white/25 mt-1.5 text-right font-mono">
                             {formatTime(msg.timestamp)}
                           </p>
@@ -199,7 +343,6 @@ export default function AIAssistant() {
                       </motion.div>
                     ))}
 
-                    {/* Typing indicator */}
                     {typing && (
                       <div className="flex justify-start items-end gap-1.5">
                         <div className="w-6 h-6 rounded-lg flex items-center justify-center"
@@ -256,7 +399,7 @@ export default function AIAssistant() {
                       value={input}
                       onChange={e => setInput(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && send()}
-                      placeholder="Ask anything about the event..."
+                      placeholder="Ask the operations center..."
                       className="input-field text-[12px] py-2.5"
                     />
                     <motion.button

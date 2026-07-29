@@ -148,44 +148,172 @@ def crowd_analyse():
 
 
 # ── POST /ask ─────────────────────────────────────────────────────────────────
+SYSTEM_PROMPT = """You are the AI Operations Analyst for an enterprise Event Operations Command Center.
+You receive live structured event data and answer operator questions like a professional operations analyst - not a chatbot.
+
+Payload structure:
+- operationalSummary: top-level snapshot (risk, visitor count, alert/incident counts, peak zone) - read this first
+- zones: sorted critical-first, each with currentOccupancy, capacity, occupancyPercent, waitingTimeMin, riskLevel, and inline forecast (in5min, in10min, in30min, confidence)
+- alerts: sorted by severity, most critical first
+- recommendations: sorted by confidence descending, each has a priority number
+- incidents: open/unresolved only
+- kpis: venue-wide aggregates
+
+Rules:
+- NEVER invent, estimate, or fabricate any numbers not present in the provided data.
+- If a value is not in the data, explicitly state it is unavailable.
+- NEVER answer in one sentence. Always use structured markdown with icons and headings.
+- Always explain WHY a situation is occurring, WHAT will happen if unaddressed, and WHAT to do.
+- Keep responses between 120-220 words.
+- Prioritize issues by severity. Address highest severity first.
+- For comparison questions, compare specific metrics side by side from zone data.
+- For "what should I do" or "next 15 min" questions, use the ranked recommendations list.
+- For "what happens if no action" questions, use the forecast fields (in10min, in30min) to project consequences.
+- For security/staffing questions, identify zones by riskLevel and waitingTimeMin.
+- Sound like an operations command center analyst, not a chatbot.
+
+Response format by question type:
+- Risk/status/summary -> 🚨 Situation Summary: Overall Risk, Active Visitors, Primary Issue, Why, Operational Impact, Recommended Actions, Expected Improvement, Confidence
+- Prediction/forecast/no action -> 📈 AI Crowd Forecast: zone, current vs predicted, timeline, consequences, recommendation, confidence
+- Recommendation/priority/next 15 min/should -> 🎯 Action Plan: top 3 ranked actions with reason, expected impact, deploy time
+- Comparison -> ⚖️ Zone Comparison: side-by-side metrics, load delta, assessment, recommendation
+- Security/staffing -> 🛡️ Security Assessment: zones ranked by risk, recommended deployment
+- General/operational -> 📊 Operational Status: summary metrics, top issues, top action
+
+Only use data from the JSON payload. Do not add information from outside the payload."""
+
+
 @api_bp.route("/ask", methods=["POST"])
 def ask():
-    data     = request.get_json(force=True) or {}
-    question = data.get("question", "")
-    context  = data.get("context", {})
-    category = context.get("category", "incident")
-    location = context.get("location", "venue")
+    data      = request.get_json(force=True) or {}
+    question  = data.get("question", "")
+    event_ctx = data.get("eventContext", {})
 
     groq_key = os.getenv("GROQ_API_KEY", "")
-    if groq_key:
+    if groq_key and event_ctx:
         try:
-            import groq
+            import groq, json as _json
             client = groq.Groq(api_key=groq_key)
-            prompt = (
-                f"You are an emergency response AI assistant at a live event. "
-                f"Active incident: {category} at {location}. "
-                f"Answer this question concisely (2-3 sentences max): {question}"
+            user_msg = (
+                f"Live event data:\n{_json.dumps(event_ctx, indent=2)}\n\n"
+                f"Operator question: {question}"
             )
             resp = client.chat.completions.create(
                 model="llama3-8b-8192",
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=200,
-                temperature=0.3,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user",   "content": user_msg},
+                ],
+                max_tokens=500,
+                temperature=0.2,
             )
             answer = resp.choices[0].message.content.strip()
-            return jsonify({"answer": answer, "confidence": "High"})
+            return jsonify({"answer": answer})
         except Exception:
             pass
 
-    # Offline keyword fallback
-    q = question.lower()
-    fallbacks = {
-        "gate":     f"Gate A is currently restricted due to the {category} incident. Use Gate B or C for alternative entry/exit.",
-        "evacuate": f"Evacuation of the affected zone ({location}) is recommended. Emergency teams are en route.",
-        "team":     f"Team Alpha is responding to {location}. ETA: 2 minutes.",
-        "control":  f"The situation at {location} is being actively managed. All 3 response teams are deployed.",
-        "safe":     f"Visitors near {location} should move to designated safe zones. Follow staff instructions.",
-    }
-    key    = next((k for k in fallbacks if k in q), None)
-    answer = fallbacks[key] if key else f"The {category} incident at {location} is being handled by designated response teams. Please follow standard emergency procedures and staff instructions."
-    return jsonify({"answer": answer, "confidence": "Medium"})
+    # Offline fallback - reads from enriched context shape
+    summary   = event_ctx.get("operationalSummary", {})
+    zones     = event_ctx.get("zones", [])            # sorted critical-first
+    alerts    = event_ctx.get("alerts", [])           # sorted by severity
+    recs      = event_ctx.get("recommendations", [])  # sorted by confidence
+    risk      = summary.get("overallRisk", "Unknown")
+    q         = question.lower()
+    top_zone  = zones[0]  if zones  else {}
+    top_rec   = recs[0]   if recs   else {}
+    top_alert = alerts[0] if alerts else {}
+
+    if any(k in q for k in ("risk", "biggest", "status", "situation", "summar", "operational")):
+        answer = (
+            f"## \U0001f6a8 Situation Summary\n\n"
+            f"**Overall Risk:** {'\U0001f534' if risk.lower() in ('high','critical') else '\U0001f7e1'} {risk.upper()}\n\n"
+            f"**Active Visitors:** {summary.get('activeVisitors','N/A'):,} / {summary.get('totalCapacity','N/A'):,} "
+            f"({summary.get('occupancyPercent','N/A')}%) | Avg wait: {summary.get('avgWaitTimeMin','N/A')} min\n\n"
+            f"**Primary Issue:** {top_zone.get('name','N/A')} at {top_zone.get('occupancyPercent','N/A')}% "
+            f"({top_zone.get('currentOccupancy','N/A')} / {top_zone.get('capacity','N/A')}) - "
+            f"Risk: {top_zone.get('riskLevel','N/A').upper()}\n\n"
+            f"**Why:** {top_alert.get('message','Elevated occupancy across critical zones.')}\n\n"
+            f"**Operational Impact:** Without intervention, congestion will worsen and emergency access may be compromised.\n\n"
+            f"**Recommended Actions:**\n"
+            f"1. {top_rec.get('action','Deploy crowd marshals to peak zones.')}\n"
+            f"2. Monitor all high-risk zones every 2 minutes.\n\n"
+            f"**Expected Improvement:** {top_rec.get('expectedReduction','N/A')}% crowd density reduction.\n\n"
+            f"**Confidence:** {top_rec.get('confidence','N/A')}%"
+        )
+
+    elif any(k in q for k in ("predict", "forecast", "10 min", "10min", "happen if", "no action")):
+        forecast = top_zone.get("forecast") or {}
+        answer = (
+            f"## \U0001f4c8 AI Crowd Forecast\n\n"
+            f"**Most Critical Zone:** {top_zone.get('name','N/A')}\n\n"
+            f"**Current Occupancy:** {top_zone.get('currentOccupancy','N/A')} / {top_zone.get('capacity','N/A')} "
+            f"({top_zone.get('occupancyPercent','N/A')}%)\n\n"
+            f"**In 5 min:** {forecast.get('in5min','N/A')} | "
+            f"**In 10 min:** {forecast.get('in10min','N/A')} | "
+            f"**In 30 min:** {forecast.get('in30min','N/A')}\n\n"
+            f"**Predicted Risk:** {str(forecast.get('risk','')).upper() or 'N/A'}\n\n"
+            f"**If no action taken:** Capacity will be exceeded, causing queue buildup, "
+            f"reduced emergency access, and visitor safety risk.\n\n"
+            f"**Recommended Action:** {top_rec.get('action','Deploy crowd marshals and open alternate zones.')}\n\n"
+            f"**Confidence:** {forecast.get('confidence','N/A')}%"
+        )
+
+    elif any(k in q for k in ("recommend", "first", "implement", "15 min", "next", "should", "priority", "plan")):
+        lines = ["## \U0001f3af Action Plan\n"]
+        for r in recs[:3]:
+            lines.append(
+                f"**{r.get('priority','?')}. {r.get('title','N/A')}** (Confidence: {r.get('confidence','N/A')}%)\n"
+                f"   Zone: {r.get('zone','N/A')} | Deploy in: {r.get('estimatedTimeMin','N/A')} min\n"
+                f"   Action: {r.get('action','N/A')}\n"
+                f"   Expected: {r.get('expectedReduction','N/A')}% reduction"
+            )
+        answer = "\n\n".join(lines)
+
+    elif "compar" in q:
+        mentioned = [z for z in zones if z.get("name","").lower() in q]
+        pair = mentioned[:2] if len(mentioned) >= 2 else zones[:2]
+        if len(pair) == 2:
+            a, b = pair
+            delta = (a.get("occupancyPercent",0) or 0) - (b.get("occupancyPercent",0) or 0)
+            answer = (
+                f"## \u2696\ufe0f Zone Comparison\n\n"
+                f"**{a.get('name')}:** {a.get('currentOccupancy')} / {a.get('capacity')} "
+                f"({a.get('occupancyPercent')}%) - Risk: {str(a.get('riskLevel','')).upper()} - Wait: {a.get('waitingTimeMin')} min\n\n"
+                f"**{b.get('name')}:** {b.get('currentOccupancy')} / {b.get('capacity')} "
+                f"({b.get('occupancyPercent')}%) - Risk: {str(b.get('riskLevel','')).upper()} - Wait: {b.get('waitingTimeMin')} min\n\n"
+                f"**Load Delta:** {abs(delta)}% higher load on {a.get('name') if delta > 0 else b.get('name')}.\n\n"
+                f"**Assessment:** {b.get('name') if delta > 0 else a.get('name')} has available capacity "
+                f"and should absorb redirected visitors immediately."
+            )
+        else:
+            answer = "## \u2696\ufe0f Zone Comparison\n\nInsufficient zone data. Please specify two zone names."
+
+    elif any(k in q for k in ("security", "staff", "marshal", "deploy")):
+        high_risk = [z for z in zones if z.get("riskLevel") in ("critical", "high")]
+        lines = ["## \U0001f6e1\ufe0f Security Assessment\n"]
+        for z in high_risk[:4]:
+            lines.append(
+                f"**{z.get('name')}** - {z.get('occupancyPercent')}% capacity, "
+                f"Risk: {str(z.get('riskLevel','')).upper()}, Wait: {z.get('waitingTimeMin')} min "
+                f"-> Deploy crowd marshals immediately."
+            )
+        if not high_risk:
+            lines.append("All zones within safe limits. Standard staffing is sufficient.")
+        answer = "\n\n".join(lines)
+
+    else:
+        answer = (
+            f"## \U0001f4ca Operational Status\n\n"
+            f"**Event:** {summary.get('event','N/A')} | **Risk:** {risk.upper()}\n\n"
+            f"**Crowd:** {summary.get('activeVisitors','N/A'):,} / {summary.get('totalCapacity','N/A'):,} "
+            f"({summary.get('occupancyPercent','N/A')}%)\n\n"
+            f"**Critical Zones:** {summary.get('criticalZones','N/A')} | "
+            f"**High-Risk:** {summary.get('highRiskZones','N/A')} | "
+            f"**Active Alerts:** {summary.get('activeAlerts','N/A')}\n\n"
+            f"**Peak Zone:** {summary.get('peakZone','N/A')} | "
+            f"**Avg Wait:** {summary.get('avgWaitTimeMin','N/A')} min | "
+            f"**Flow:** {summary.get('flowRatePerMin','N/A')}/min\n\n"
+            f"**Top Action:** {top_rec.get('action','All zones stable - continue monitoring.')}"
+        )
+
+    return jsonify({"answer": answer})

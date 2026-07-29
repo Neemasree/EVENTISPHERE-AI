@@ -5,6 +5,8 @@ import type { AgentType } from '../../types';
 import { formatTime } from '../../utils/helpers';
 import { ArrowRight, Radio } from 'lucide-react';
 
+interface Props { compact?: boolean }
+
 const agentColors: Record<AgentType, string> = {
   orchestrator: '#00d4ff',
   crowd:        '#a855f7',
@@ -27,38 +29,10 @@ const msgTypeConfig: Record<string, { bg: string; border: string; dot: string }>
   response: { bg: 'rgba(0,245,160,0.06)',   border: 'rgba(0,245,160,0.18)', dot: '#00f5a0' },
 };
 
-let _seeded = false;
-
-interface Props { compact?: boolean }
-
 export default function AgentCommsPanel({ compact }: Props) {
-  const { agentMessages, addAgentMessage } = useEventStore();
+  const { agentMessages } = useEventStore();
   const endRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (_seeded) return;
-    _seeded = true;
-    const now = Date.now();
-    const INITIAL = [
-      { from: 'crowd',        to: 'orchestrator', message: 'Gate A at 76%. Queue building — requesting gate redistribution.', type: 'warning',  ts: -15 },
-      { from: 'orchestrator', to: 'gate',         message: 'Acknowledged. Open Gate C to absorb Gate A load.',               type: 'action',   ts: -14 },
-      { from: 'gate',         to: 'orchestrator', message: 'Gate C opened. Signage updated. Monitoring redistribution.',      type: 'response', ts: -13 },
-      { from: 'crowd',        to: 'orchestrator', message: 'Food Court at 87%. Overflow predicted in 4 minutes.',             type: 'warning',  ts: -8  },
-      { from: 'orchestrator', to: 'crowd',        message: 'Recommendation queued: Open Food Stall 3. Awaiting approval.',    type: 'action',   ts: -7  },
-      { from: 'parking',      to: 'orchestrator', message: 'Parking A at 84%. Rerouting arrivals to Lot B.',                  type: 'info',     ts: -5  },
-      { from: 'orchestrator', to: 'analytics',    message: 'Log all events for post-event analysis report.',                  type: 'action',   ts: -2  },
-    ];
-    INITIAL.forEach((m, i) => {
-      setTimeout(() => {
-        addAgentMessage({
-          id: `seed_${now}_${i}`,
-          from: m.from as AgentType, to: m.to as AgentType,
-          message: m.message, type: m.type as any,
-          timestamp: new Date(now + m.ts * 60000), animated: false,
-        });
-      }, i * 80);
-    });
-  }, []); // eslint-disable-line
+  // seeding is now done in the store — no local seed needed
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });

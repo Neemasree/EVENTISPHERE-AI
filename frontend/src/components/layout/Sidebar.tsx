@@ -15,8 +15,9 @@ const navGroups = [
     id: 'main',
     label: 'Overview',
     items: [
-      { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-      { to: '/heatmap',   icon: Flame,            label: 'Heat Map' },
+      { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard'  },
+      { to: '/venue',     icon: MapPin,           label: 'Venue Map'  },
+      { to: '/heatmap',   icon: Flame,            label: 'Heat Map'   },
     ],
   },
   {

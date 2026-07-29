@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from models.data_store import ALERTS, RECOMMENDATIONS
+from models.data_store import get_all, get_one, insert_one, update_one, ALERTS, RECOMMENDATIONS
 from datetime import datetime
 import uuid
 
@@ -7,7 +7,8 @@ alerts_bp = Blueprint("alerts", __name__)
 
 @alerts_bp.route("/", methods=["GET"])
 def list_alerts():
-    active = [a for a in ALERTS if not a["dismissed"]]
+    all_alerts = get_all("alerts", ALERTS)
+    active = [a for a in all_alerts if not a.get("dismissed")]
     return jsonify({"alerts": active, "total": len(active)})
 
 @alerts_bp.route("/", methods=["POST"])
@@ -23,25 +24,28 @@ def create_alert():
         "read":      False,
         "dismissed": False,
     }
-    ALERTS.insert(0, alert)
+    insert_one("alerts", ALERTS, alert, prepend=True)
     return jsonify(alert), 201
 
 @alerts_bp.route("/<alert_id>/dismiss", methods=["PATCH"])
 def dismiss_alert(alert_id: str):
-    alert = next((a for a in ALERTS if a["id"] == alert_id), None)
+    alert = get_one("alerts", ALERTS, "id", alert_id)
     if not alert:
         return jsonify({"error": "Alert not found"}), 404
+    update_one("alerts", ALERTS, "id", alert_id, {"dismissed": True})
     alert["dismissed"] = True
     return jsonify(alert)
 
 @alerts_bp.route("/recommendations", methods=["GET"])
 def list_recommendations():
-    return jsonify({"recommendations": RECOMMENDATIONS})
+    recs = get_all("recommendations", RECOMMENDATIONS)
+    return jsonify({"recommendations": recs})
 
 @alerts_bp.route("/recommendations/<rec_id>/apply", methods=["POST"])
 def apply_recommendation(rec_id: str):
-    rec = next((r for r in RECOMMENDATIONS if r["id"] == rec_id), None)
+    rec = get_one("recommendations", RECOMMENDATIONS, "id", rec_id)
     if not rec:
         return jsonify({"error": "Recommendation not found"}), 404
+    update_one("recommendations", RECOMMENDATIONS, "id", rec_id, {"applied": True})
     rec["applied"] = True
     return jsonify(rec)

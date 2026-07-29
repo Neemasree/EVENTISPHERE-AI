@@ -71,9 +71,10 @@ export default function DigitalTwinVenue({ compact }: Props) {
       </div>
 
       {/* SVG Map */}
-      <div className="relative" style={{ paddingBottom: compact ? '40%' : '44%' }}>
+      <div className="relative w-full" style={{ paddingBottom: compact ? '40%' : '52%' }}>
         <svg
           viewBox="0 0 540 380"
+          preserveAspectRatio="xMidYMid meet"
           className="absolute inset-0 w-full h-full"
           style={{ background: 'linear-gradient(135deg, #050c1a 0%, #080f20 50%, #050c1a 100%)' }}
         >
@@ -82,7 +83,7 @@ export default function DigitalTwinVenue({ compact }: Props) {
             <line key={`h${i}`} x1="0" y1={i * 19} x2="540" y2={i * 19}
               stroke="rgba(255,255,255,0.025)" strokeWidth="0.5" />
           ))}
-          {[...Array(28)].map((_, i) => (
+          {[...Array(29)].map((_, i) => (
             <line key={`v${i}`} x1={i * 19} y1="0" x2={i * 19} y2="380"
               stroke="rgba(255,255,255,0.025)" strokeWidth="0.5" />
           ))}

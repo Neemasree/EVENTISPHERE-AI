@@ -127,32 +127,34 @@ function CategoryCombobox({ value, onChange }: { value: string; onChange: (v: st
   );
 }
 
-// ── Venue mini-map ────────────────────────────────────────────────────────────
+// ── Venue mini-map (reads live zones from store) ─────────────────────────────
 function VenueMap({ active, location }: { active: boolean; location: string }) {
-  const loc = location.toLowerCase();
-  const zones = [
-    { id: 'stage',   label: 'Main Stage',  x: 30,  y: 10,  w: 35, h: 28 },
-    { id: 'food',    label: 'Food Court',  x: 68,  y: 10,  w: 28, h: 22 },
-    { id: 'gate_a',  label: 'Gate A',      x: 5,   y: 45,  w: 18, h: 14 },
-    { id: 'gate_b',  label: 'Gate B',      x: 26,  y: 45,  w: 18, h: 14 },
-    { id: 'vip',     label: 'VIP Lounge',  x: 68,  y: 35,  w: 28, h: 14 },
-    { id: 'medical', label: 'Medical Bay', x: 68,  y: 52,  w: 28, h: 14 },
-    { id: 'parking', label: 'Parking A',   x: 5,   y: 62,  w: 40, h: 14 },
-    { id: 'exit',    label: 'Main Exit',   x: 48,  y: 62,  w: 18, h: 14 },
-  ];
+  const zones = useEventStore(s => s.zones);
+  const loc   = location.toLowerCase();
+
+  // Compute bounding box of all zones to normalise positions
+  const minX = Math.min(...zones.map(z => z.x));
+  const minY = Math.min(...zones.map(z => z.y));
+  const maxX = Math.max(...zones.map(z => z.x + z.width));
+  const maxY = Math.max(...zones.map(z => z.y + z.height));
+  const rangeX = maxX - minX || 1;
+  const rangeY = maxY - minY || 1;
+
+  const toPercent = (z: typeof zones[0]) => ({
+    left:   ((z.x - minX) / rangeX) * 96,
+    top:    ((z.y - minY) / rangeY) * 92,
+    width:  (z.width  / rangeX) * 96,
+    height: (z.height / rangeY) * 92,
+  });
 
   const isActive = (z: typeof zones[0]) => {
     if (!active) return false;
-    const l = loc;
-    if (z.id === 'food'    && (l.includes('food')))    return true;
-    if (z.id === 'stage'   && (l.includes('stage')))   return true;
-    if (z.id === 'gate_a'  && (l.includes('gate a')))  return true;
-    if (z.id === 'gate_b'  && (l.includes('gate b')))  return true;
-    if (z.id === 'medical' && (l.includes('medical'))) return true;
-    if (z.id === 'parking' && (l.includes('parking'))) return true;
-    if (z.id === 'vip'     && (l.includes('vip')))     return true;
-    if (z.id === 'exit'    && (l.includes('exit')))    return true;
-    return false;
+    return z.name.toLowerCase().includes(loc) || loc.includes(z.name.toLowerCase());
+  };
+
+  const zoneIcons: Record<string, string> = {
+    parking: '🚗', gate: '🚪', vip: '⭐', stage: '🎵',
+    food: '🍔', medical: '🏥', restroom: '🚻', exit: '↩', emergency_exit: '🚨',
   };
 
   return (
@@ -170,23 +172,30 @@ function VenueMap({ active, location }: { active: boolean; location: string }) {
         </svg>
 
         {zones.map(z => {
-          const on = isActive(z);
+          const on  = isActive(z);
+          const pos = toPercent(z);
+          const riskColors: Record<string, string> = {
+            critical: '#f43f5e', high: '#fb923c', medium: '#fbbf24', low: '#00f5a0',
+          };
+          const rColor = riskColors[z.riskLevel] ?? '#00f5a0';
           return (
             <div key={z.id}
-              className="absolute flex items-center justify-center rounded-lg transition-all duration-300"
+              className="absolute flex flex-col items-center justify-center rounded-lg transition-all duration-300"
               style={{
-                left: `${z.x}%`, top: `${z.y}%`, width: `${z.w}%`, height: `${z.h}%`,
-                background: on ? 'rgba(244,63,94,0.18)' : 'rgba(255,255,255,0.04)',
-                border: on ? '1px solid rgba(244,63,94,0.6)' : '1px solid rgba(255,255,255,0.08)',
+                left: `${pos.left}%`, top: `${pos.top}%`,
+                width: `${pos.width}%`, height: `${pos.height}%`,
+                background: on ? 'rgba(244,63,94,0.18)' : `${rColor}08`,
+                border: on ? '1px solid rgba(244,63,94,0.6)' : `1px solid ${rColor}25`,
                 boxShadow: on ? '0 0 16px rgba(244,63,94,0.3)' : 'none',
                 animation: on ? 'criticalPulse 1.2s ease-in-out infinite' : 'none',
               }}>
-              <span className="text-[8px] font-bold uppercase tracking-wider text-center leading-tight"
-                style={{ color: on ? '#f43f5e' : 'rgba(255,255,255,0.3)' }}>
-                {z.label}
+              <span className="text-[7px] leading-none mb-0.5">{zoneIcons[z.type] ?? '📍'}</span>
+              <span className="text-[6px] font-bold uppercase tracking-wider text-center leading-tight px-0.5"
+                style={{ color: on ? '#f43f5e' : `${rColor}cc` }}>
+                {z.name.replace(' ', '\n')}
               </span>
               {on && (
-                <motion.div className="absolute -top-1 -right-1 w-3 h-3 rounded-full"
+                <motion.div className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full"
                   style={{ background: '#f43f5e', boxShadow: '0 0 6px #f43f5e' }}
                   animate={{ scale: [1, 1.4, 1] }} transition={{ duration: 0.8, repeat: Infinity }} />
               )}
@@ -194,7 +203,7 @@ function VenueMap({ active, location }: { active: boolean; location: string }) {
           );
         })}
 
-        {/* Trucks */}
+        {/* Response trucks */}
         {active && (
           <>
             <motion.div className="absolute text-base" style={{ bottom: '6%', left: '10%' }}

@@ -50,7 +50,7 @@ export default function AppShell({ children }: Props) {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            className="px-4 py-5 lg:px-6 lg:py-6 min-h-full"
+            className="w-full px-4 py-5 lg:px-6 lg:py-6 min-h-full"
           >
             {children}
           </motion.div>

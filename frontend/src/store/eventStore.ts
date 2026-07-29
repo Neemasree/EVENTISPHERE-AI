@@ -4,19 +4,58 @@ import type {
   TimelineEvent, KPIData, Notification, Incident, ChatMessage, RiskLevel, ScenarioType, Event
 } from '../types';
 
+export type ScanOutcome = 'verified' | 'duplicate' | 'rejected';
+
+export interface DemoQueueEntry {
+  ticketId: string;
+  gate: string;
+  outcome: ScanOutcome;
+}
+
+export interface ScanFeedEntry {
+  id: string;
+  ticketId: string;
+  gate: string;
+  status: ScanOutcome;
+  reason: string;
+  timestamp: Date;
+}
+
+const KNOWN_DUPLICATES = new Set(['EVT-2024-09812']);
+const KNOWN_INVALID = new Set(['EVT-2024-00001']);
+
+export function verifyTicket(ticketId: string): { outcome: ScanOutcome; reason: string } {
+  if (KNOWN_INVALID.has(ticketId)) return { outcome: 'rejected', reason: 'Ticket not found in system' };
+  if (KNOWN_DUPLICATES.has(ticketId)) return { outcome: 'duplicate', reason: 'Already scanned — duplicate detected' };
+  return { outcome: 'verified', reason: 'Valid ticket confirmed' };
+}
+
+const demoQueue: DemoQueueEntry[] = [
+  { ticketId: 'EVT-2024-15420', gate: 'Gate A', outcome: 'verified'   },
+  { ticketId: 'EVT-2024-15421', gate: 'Gate A', outcome: 'verified'   },
+  { ticketId: 'EVT-2024-09812', gate: 'Gate B', outcome: 'duplicate'  },
+  { ticketId: 'EVT-2024-15423', gate: 'Gate C', outcome: 'verified'   },
+  { ticketId: 'EVT-2024-15424', gate: 'Gate A', outcome: 'verified'   },
+  { ticketId: 'EVT-2024-15426', gate: 'Gate C', outcome: 'verified'   },
+  { ticketId: 'EVT-2024-00001', gate: 'Gate B', outcome: 'rejected'   },
+  { ticketId: 'EVT-2024-15428', gate: 'Gate C', outcome: 'verified'   },
+  { ticketId: 'EVT-2024-15429', gate: 'Gate A', outcome: 'verified'   },
+  { ticketId: 'EVT-2024-09813', gate: 'Gate B', outcome: 'duplicate'  },
+];
+
 const initialZones: Zone[] = [
-  { id: 'parking_a', name: 'Parking A', type: 'parking', currentCrowd: 420, maxCapacity: 500, occupancy: 84, waitingTime: 5, riskLevel: 'high', x: 20, y: 20, width: 120, height: 60 },
-  { id: 'parking_b', name: 'Parking B', type: 'parking', currentCrowd: 180, maxCapacity: 500, occupancy: 36, waitingTime: 1, riskLevel: 'low', x: 160, y: 20, width: 120, height: 60 },
-  { id: 'gate_a', name: 'Gate A', type: 'gate', currentCrowd: 380, maxCapacity: 500, occupancy: 76, waitingTime: 8, riskLevel: 'high', x: 20, y: 100, width: 80, height: 50 },
-  { id: 'gate_b', name: 'Gate B', type: 'gate', currentCrowd: 120, maxCapacity: 500, occupancy: 24, waitingTime: 2, riskLevel: 'low', x: 115, y: 100, width: 80, height: 50 },
-  { id: 'gate_c', name: 'Gate C', type: 'gate', currentCrowd: 90, maxCapacity: 500, occupancy: 18, waitingTime: 1, riskLevel: 'low', x: 210, y: 100, width: 80, height: 50 },
-  { id: 'vip', name: 'VIP Lounge', type: 'vip', currentCrowd: 45, maxCapacity: 150, occupancy: 30, waitingTime: 0, riskLevel: 'low', x: 310, y: 20, width: 100, height: 60 },
-  { id: 'main_stage', name: 'Main Stage', type: 'stage', currentCrowd: 3200, maxCapacity: 5000, occupancy: 64, waitingTime: 0, riskLevel: 'medium', x: 100, y: 175, width: 220, height: 120 },
-  { id: 'food_court', name: 'Food Court', type: 'food', currentCrowd: 520, maxCapacity: 600, occupancy: 87, waitingTime: 12, riskLevel: 'critical', x: 340, y: 100, width: 120, height: 75 },
-  { id: 'medical', name: 'Medical Bay', type: 'medical', currentCrowd: 8, maxCapacity: 50, occupancy: 16, waitingTime: 3, riskLevel: 'low', x: 340, y: 190, width: 80, height: 50 },
-  { id: 'restrooms', name: 'Restrooms', type: 'restroom', currentCrowd: 95, maxCapacity: 120, occupancy: 79, waitingTime: 6, riskLevel: 'high', x: 340, y: 255, width: 80, height: 45 },
-  { id: 'exit_main', name: 'Main Exit', type: 'exit', currentCrowd: 140, maxCapacity: 400, occupancy: 35, waitingTime: 2, riskLevel: 'low', x: 20, y: 310, width: 100, height: 45 },
-  { id: 'emergency_exit', name: 'Emergency Exit', type: 'emergency_exit', currentCrowd: 0, maxCapacity: 1000, occupancy: 0, waitingTime: 0, riskLevel: 'low', x: 440, y: 175, width: 80, height: 50 },
+  { id: 'parking_a',     name: 'Parking A',      type: 'parking',       currentCrowd: 420,  maxCapacity: 500,  occupancy: 84, waitingTime: 5,  riskLevel: 'high',     x: 20,  y: 20,  width: 130, height: 60 },
+  { id: 'parking_b',    name: 'Parking B',      type: 'parking',       currentCrowd: 180,  maxCapacity: 500,  occupancy: 36, waitingTime: 1,  riskLevel: 'low',      x: 170, y: 20,  width: 130, height: 60 },
+  { id: 'vip',          name: 'VIP Lounge',     type: 'vip',           currentCrowd: 45,   maxCapacity: 150,  occupancy: 30, waitingTime: 0,  riskLevel: 'low',      x: 320, y: 20,  width: 110, height: 60 },
+  { id: 'emergency_exit', name: 'Emergency Exit', type: 'emergency_exit', currentCrowd: 0,  maxCapacity: 1000, occupancy: 0,  waitingTime: 0,  riskLevel: 'low',      x: 450, y: 20,  width: 70,  height: 60 },
+  { id: 'gate_a',       name: 'Gate A',         type: 'gate',          currentCrowd: 380,  maxCapacity: 500,  occupancy: 76, waitingTime: 8,  riskLevel: 'high',     x: 20,  y: 100, width: 90,  height: 55 },
+  { id: 'gate_b',       name: 'Gate B',         type: 'gate',          currentCrowd: 120,  maxCapacity: 500,  occupancy: 24, waitingTime: 2,  riskLevel: 'low',      x: 125, y: 100, width: 90,  height: 55 },
+  { id: 'gate_c',       name: 'Gate C',         type: 'gate',          currentCrowd: 90,   maxCapacity: 500,  occupancy: 18, waitingTime: 1,  riskLevel: 'low',      x: 230, y: 100, width: 90,  height: 55 },
+  { id: 'food_court',   name: 'Food Court',     type: 'food',          currentCrowd: 520,  maxCapacity: 600,  occupancy: 87, waitingTime: 12, riskLevel: 'critical', x: 340, y: 100, width: 180, height: 55 },
+  { id: 'main_stage',   name: 'Main Stage',     type: 'stage',         currentCrowd: 3200, maxCapacity: 5000, occupancy: 64, waitingTime: 0,  riskLevel: 'medium',   x: 20,  y: 175, width: 300, height: 120 },
+  { id: 'medical',      name: 'Medical Bay',    type: 'medical',       currentCrowd: 8,    maxCapacity: 50,   occupancy: 16, waitingTime: 3,  riskLevel: 'low',      x: 340, y: 175, width: 90,  height: 55 },
+  { id: 'restrooms',    name: 'Restrooms',      type: 'restroom',      currentCrowd: 95,   maxCapacity: 120,  occupancy: 79, waitingTime: 6,  riskLevel: 'high',     x: 450, y: 175, width: 70,  height: 55 },
+  { id: 'exit_main',    name: 'Main Exit',      type: 'exit',          currentCrowd: 140,  maxCapacity: 400,  occupancy: 35, waitingTime: 2,  riskLevel: 'low',      x: 340, y: 250, width: 180, height: 50 },
 ];
 
 const initialEvents: Event[] = [
@@ -87,6 +126,9 @@ export interface EventState {
   isDarkMode: boolean;
   sidebarOpen: boolean;
   activeScenario: ScenarioType | null;
+  ticketDemoQueue: DemoQueueEntry[];
+  ticketDemoIndex: number;
+  ticketScanFeed: ScanFeedEntry[];
 
   setSelectedZone: (zone: Zone | null) => void;
   applyRecommendation: (id: string) => void;
@@ -105,17 +147,56 @@ export interface EventState {
   toggleDarkMode: () => void;
   toggleSidebar: () => void;
   tickLiveData: () => void;
+  simulateNextScan: () => void;
+  refreshRecommendations: () => void;
+}
+
+function generateRecommendations(zones: Zone[]): Recommendation[] {
+  const recs: Recommendation[] = [];
+  const now2 = new Date();
+  zones.forEach(z => {
+    if (z.occupancy >= 85 && z.type === 'food') {
+      recs.push({ id: `rec_${z.id}`, title: `Expand ${z.name} Capacity`, description: `${z.name} at ${z.occupancy}% — overflow imminent in ~${Math.max(1, Math.round((z.maxCapacity - z.currentCrowd) / 15))} min.`, action: `Open additional stalls at ${z.name}`, zone: z.name, expectedReduction: Math.round(20 + (z.occupancy - 85) * 0.8), estimatedTime: 3, confidence: Math.min(99, 80 + z.occupancy - 85), applied: false, timestamp: now2 });
+    }
+    if (z.occupancy >= 80 && z.type === 'gate') {
+      const altGates = zones.filter(g => g.type === 'gate' && g.id !== z.id && g.occupancy < 50);
+      if (altGates.length) {
+        const alt = altGates.sort((a, b) => a.occupancy - b.occupancy)[0];
+        recs.push({ id: `rec_${z.id}`, title: `Redirect from ${z.name}`, description: `${z.name} at ${z.occupancy}%. ${alt.name} has capacity (${alt.occupancy}% load).`, action: `Display signage redirecting crowd from ${z.name} to ${alt.name}`, zone: z.name, expectedReduction: Math.round(25 + (z.occupancy - 80) * 0.7), estimatedTime: 2, confidence: Math.min(99, 82 + z.occupancy - 80), applied: false, timestamp: now2 });
+      }
+    }
+    if (z.occupancy >= 80 && z.type === 'parking') {
+      const altParking = zones.filter(p => p.type === 'parking' && p.id !== z.id && p.occupancy < 60);
+      if (altParking.length) {
+        const alt = altParking.sort((a, b) => a.occupancy - b.occupancy)[0];
+        recs.push({ id: `rec_${z.id}`, title: `Reroute to ${alt.name}`, description: `${z.name} at ${z.occupancy}%. Route incoming vehicles to ${alt.name} (${alt.occupancy}% full).`, action: `Update signage: "${z.name} FULL — Use ${alt.name}"`, zone: z.name, expectedReduction: 35, estimatedTime: 2, confidence: 94, applied: false, timestamp: now2 });
+      }
+    }
+    if (z.occupancy >= 75 && z.type === 'restroom') {
+      recs.push({ id: `rec_${z.id}`, title: `${z.name} Queue Alert`, description: `${z.name} at ${z.occupancy}% — wait time ${z.waitingTime} min. Deploy mobile units.`, action: `Deploy 2 portable restroom units near ${z.name}`, zone: z.name, expectedReduction: 20, estimatedTime: 5, confidence: 78, applied: false, timestamp: now2 });
+    }
+    if (z.occupancy >= 90 && z.type === 'stage') {
+      recs.push({ id: `rec_${z.id}`, title: `${z.name} Crowd Critical`, description: `${z.name} at ${z.occupancy}% — deploy crowd safety team immediately.`, action: `Activate crowd safety protocol at ${z.name}`, zone: z.name, expectedReduction: 15, estimatedTime: 1, confidence: 97, applied: false, timestamp: now2 });
+    }
+  });
+  return recs.slice(0, 5);
 }
 
 const computeKPI = (zones: Zone[], alerts: Alert[], recs: Recommendation[]): KPIData => {
+  if (!zones.length) return {
+    currentCrowd: 0, totalCapacity: 0, occupancyPercent: 0,
+    activeAlerts: alerts.filter(a => !a.dismissed).length,
+    aiRecommendations: recs.filter(r => !r.applied).length,
+    avgWaitTime: 0, peakZone: '—', riskLevel: 'low', agentStatus: 'active', flowRate: 0,
+  };
   const totalCrowd = zones.reduce((s, z) => s + z.currentCrowd, 0);
-  const totalCap = zones.reduce((s, z) => s + z.maxCapacity, 0);
-  const occupancy = Math.round((totalCrowd / totalCap) * 100);
+  const totalCap   = zones.reduce((s, z) => s + z.maxCapacity, 0);
+  const occupancy  = totalCap > 0 ? Math.round((totalCrowd / totalCap) * 100) : 0;
   const activeAlerts = alerts.filter(a => !a.dismissed).length;
-  const avgWait = Math.round(zones.reduce((s, z) => s + z.waitingTime, 0) / zones.length);
-  const peakZone = zones.reduce((a, b) => a.occupancy > b.occupancy ? a : b).name;
+  const avgWait    = Math.round(zones.reduce((s, z) => s + z.waitingTime, 0) / zones.length);
+  const peakZone   = zones.reduce((a, b) => a.occupancy > b.occupancy ? a : b).name;
   const criticalCount = zones.filter(z => z.riskLevel === 'critical').length;
-  const highCount = zones.filter(z => z.riskLevel === 'high').length;
+  const highCount     = zones.filter(z => z.riskLevel === 'high').length;
   const riskLevel: RiskLevel = criticalCount > 0 ? 'critical' : highCount > 1 ? 'high' : highCount > 0 ? 'medium' : 'low';
   return {
     currentCrowd: totalCrowd, totalCapacity: totalCap, occupancyPercent: occupancy,
@@ -132,7 +213,15 @@ export const useEventStore = create<EventState>((set, get) => ({
   recommendations: initialRecommendations,
   predictions: initialPredictions,
   agents: initialAgents,
-  agentMessages: [],
+  agentMessages: [
+    { id: 'seed_0', from: 'crowd',        to: 'orchestrator', message: 'Gate A at 76%. Queue building — requesting gate redistribution.', type: 'warning',  timestamp: ts(15), animated: false },
+    { id: 'seed_1', from: 'orchestrator', to: 'gate',         message: 'Acknowledged. Open Gate C to absorb Gate A load.',               type: 'action',   timestamp: ts(14), animated: false },
+    { id: 'seed_2', from: 'gate',         to: 'orchestrator', message: 'Gate C opened. Signage updated. Monitoring redistribution.',      type: 'response', timestamp: ts(13), animated: false },
+    { id: 'seed_3', from: 'crowd',        to: 'orchestrator', message: 'Food Court at 87%. Overflow predicted in 4 minutes.',             type: 'warning',  timestamp: ts(8),  animated: false },
+    { id: 'seed_4', from: 'orchestrator', to: 'crowd',        message: 'Recommendation queued: Open Food Stall 3. Awaiting approval.',    type: 'action',   timestamp: ts(7),  animated: false },
+    { id: 'seed_5', from: 'parking',      to: 'orchestrator', message: 'Parking A at 84%. Rerouting arrivals to Lot B.',                  type: 'info',     timestamp: ts(5),  animated: false },
+    { id: 'seed_6', from: 'orchestrator', to: 'analytics',    message: 'Log all events for post-event analysis report.',                  type: 'action',   timestamp: ts(2),  animated: false },
+  ],
   timeline: initialTimeline,
   notifications: [],
   incidents: [
@@ -149,6 +238,9 @@ export const useEventStore = create<EventState>((set, get) => ({
   isDarkMode: true,
   sidebarOpen: true,
   activeScenario: null,
+  ticketDemoQueue: demoQueue,
+  ticketDemoIndex: 0,
+  ticketScanFeed: [],
 
   setSelectedZone: (zone) => set({ selectedZone: zone }),
   toggleMute: () => set(s => ({ isMuted: !s.isMuted })),
@@ -163,7 +255,8 @@ export const useEventStore = create<EventState>((set, get) => ({
   }),
   setZones: (zones) => set(s => {
     const updatedEvents = s.events.map(e => e.id === s.activeEventId ? { ...e, zones } : e);
-    return { zones, events: updatedEvents, kpi: computeKPI(zones, s.alerts, s.recommendations) };
+    const recs = generateRecommendations(zones);
+    return { zones, events: updatedEvents, recommendations: recs, kpi: computeKPI(zones, s.alerts, recs) };
   }),
 
   applyRecommendation: (id) => set(s => {
@@ -203,7 +296,48 @@ export const useEventStore = create<EventState>((set, get) => ({
       const risk: RiskLevel = occ >= 95 ? 'critical' : occ >= 80 ? 'high' : occ >= 60 ? 'medium' : 'low';
       return { ...z, currentCrowd: c, occupancy: occ, riskLevel: risk };
     });
-    return { zones, kpi: computeKPI(zones, s.alerts, s.recommendations) };
+    const recs = generateRecommendations(zones);
+    return { zones, recommendations: recs, kpi: computeKPI(zones, s.alerts, recs) };
+  }),
+
+  refreshRecommendations: () => set(s => {
+    const recs = generateRecommendations(s.zones);
+    return { recommendations: recs, kpi: computeKPI(s.zones, s.alerts, recs) };
+  }),
+
+  simulateNextScan: () => set(s => {
+    const entry = s.ticketDemoQueue[s.ticketDemoIndex];
+    if (!entry) return {};
+
+    const { outcome, reason } = verifyTicket(entry.ticketId);
+    const result: ScanFeedEntry = {
+      id: `scan_${Date.now()}`,
+      ticketId: entry.ticketId,
+      gate: entry.gate,
+      status: outcome,
+      reason,
+      timestamp: new Date(),
+    };
+
+    let nextAlerts = s.alerts;
+    let nextTimeline = s.timeline;
+    const now2 = new Date();
+
+    if (outcome === 'duplicate' || outcome === 'rejected') {
+      const severity: Alert['severity'] = outcome === 'duplicate' ? 'high' : 'critical';
+      const alertTitle = outcome === 'duplicate' ? 'Duplicate Ticket Detected' : 'Invalid Ticket Rejected';
+      nextAlerts = [{ id: `a_${Date.now()}`, severity, title: alertTitle, message: `Ticket ${entry.ticketId} at ${entry.gate}: ${reason}`, zone: entry.gate, timestamp: now2, read: false, dismissed: false }, ...s.alerts];
+      nextTimeline = [...s.timeline, { id: `te_${Date.now()}`, time: now2, title: alertTitle, description: `Ticket ${entry.ticketId} at ${entry.gate}: ${reason}`, type: outcome === 'duplicate' ? 'warning' : 'critical', agent: 'ticket' }];
+    }
+
+    const nextIndex = (s.ticketDemoIndex + 1) % s.ticketDemoQueue.length;
+
+    return {
+      ticketScanFeed: [result, ...s.ticketScanFeed],
+      ticketDemoIndex: nextIndex,
+      alerts: nextAlerts,
+      timeline: nextTimeline,
+    };
   }),
 
   triggerScenario: (scenario) => {
@@ -271,6 +405,8 @@ export const useEventStore = create<EventState>((set, get) => ({
       return { ...z, occupancy: occ, riskLevel: risk };
     });
     set({ zones: newZones, alerts: newAlerts, timeline: newTimeline, agentMessages: newMsgs.slice(-50), activeScenario: scenario, kpi: computeKPI(newZones, newAlerts, recommendations) });
+    const freshRecs = generateRecommendations(newZones);
+    set(s => ({ recommendations: freshRecs, kpi: computeKPI(newZones, newAlerts, freshRecs) }));
     setTimeout(() => set({ activeScenario: null }), 3000);
   },
 }));

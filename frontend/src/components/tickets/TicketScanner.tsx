@@ -1,40 +1,29 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, XCircle, Scan, Wifi, AlertTriangle } from 'lucide-react';
+import { useEventStore } from '../../store/eventStore';
+
+type ScanStatus = 'verified' | 'duplicate' | 'rejected';
 
 interface ScanResult {
   id: string;
-  visitor: string;
   ticketId: string;
-  status: 'verified' | 'duplicate' | 'invalid';
+  status: ScanStatus;
   gate: string;
   timestamp: Date;
-  seat?: string;
+  reason: string;
 }
 
-const MOCK_SCANS: Omit<ScanResult, 'id' | 'timestamp'>[] = [
-  { visitor: 'Sarah Mitchell',   ticketId: 'EVT-2024-15420', status: 'verified',  gate: 'Gate A', seat: 'Sector B, Row 12' },
-  { visitor: 'James Okoye',      ticketId: 'EVT-2024-15421', status: 'verified',  gate: 'Gate A', seat: 'Sector A, Row 5' },
-  { visitor: 'Unknown',          ticketId: 'EVT-2024-09812', status: 'duplicate', gate: 'Gate B' },
-  { visitor: 'Priya Sharma',     ticketId: 'EVT-2024-15423', status: 'verified',  gate: 'Gate C', seat: 'VIP Box 3' },
-  { visitor: 'Marcus Lee',       ticketId: 'EVT-2024-15424', status: 'verified',  gate: 'Gate A', seat: 'Sector D, Row 8' },
-  { visitor: 'Unknown',          ticketId: 'EVT-2024-00001', status: 'invalid',   gate: 'Gate B' },
-  { visitor: 'Elena Rodriguez',  ticketId: 'EVT-2024-15426', status: 'verified',  gate: 'Gate C', seat: 'Sector C, Row 3' },
-];
-
-const STATUS_CFG = {
+const STATUS_CFG: Record<ScanStatus, { color: string; bg: string; border: string; icon: React.ElementType; label: string }> = {
   verified:  { color: '#00f5a0', bg: 'rgba(0,245,160,0.08)',  border: 'rgba(0,245,160,0.25)',  icon: CheckCircle, label: 'ENTRY GRANTED'    },
   duplicate: { color: '#f43f5e', bg: 'rgba(244,63,94,0.1)',   border: 'rgba(244,63,94,0.35)',  icon: XCircle,     label: 'DUPLICATE — REJECTED' },
-  invalid:   { color: '#fbbf24', bg: 'rgba(251,191,36,0.08)', border: 'rgba(251,191,36,0.25)', icon: AlertTriangle,label: 'INVALID TICKET'   },
+  rejected:  { color: '#fbbf24', bg: 'rgba(251,191,36,0.08)', border: 'rgba(251,191,36,0.25)', icon: AlertTriangle,label: 'TICKET REJECTED'  },
 };
 
 export default function TicketScanner() {
-  const [scanning,   setScanning]   = useState(false);
-  const [current,    setCurrent]    = useState<ScanResult | null>(null);
-  const [history,    setHistory]    = useState<ScanResult[]>([]);
-  const [scanIndex,  setScanIndex]  = useState(0);
-  const [autoPlay,   setAutoPlay]   = useState(false);
-  const [scanAnim,   setScanAnim]   = useState(false);
+  const { simulateNextScan, ticketScanFeed } = useEventStore();
+  const [current,  setCurrent]  = useState<ScanResult | null>(null);
+  const [history,  setHistory]  = useState<ScanResult[]>([]);
 
   const stats = {
     total:      history.length,
@@ -42,48 +31,24 @@ export default function TicketScanner() {
     rejected:   history.filter(h => h.status !== 'verified').length,
   };
 
-  const doScan = () => {
-    if (scanning) return;
-    setScanning(true);
-    setScanAnim(true);
-    setCurrent(null);
-
-    // Scan animation delay
-    setTimeout(() => {
-      const template = MOCK_SCANS[scanIndex % MOCK_SCANS.length];
-      const result: ScanResult = {
-        ...template,
-        id: `scan_${Date.now()}`,
-        timestamp: new Date(),
-      };
-      setCurrent(result);
-      setHistory(prev => [result, ...prev.slice(0, 9)]);
-      setScanIndex(i => i + 1);
-      setScanning(false);
-      setScanAnim(false);
-
-      // Sound
-      try {
-        const ctx  = new AudioContext();
-        const freq = result.status === 'verified' ? 880 : 220;
-        const o    = ctx.createOscillator();
-        const g    = ctx.createGain();
-        o.connect(g); g.connect(ctx.destination);
-        o.frequency.value = freq;
-        o.type = result.status === 'verified' ? 'sine' : 'square';
-        g.gain.setValueAtTime(0.15, ctx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-        o.start(); o.stop(ctx.currentTime + 0.3);
-      } catch {}
-    }, 1200);
-  };
-
-  // Auto-play mode
   useEffect(() => {
-    if (!autoPlay) return;
-    const id = setInterval(() => doScan(), 2200);
-    return () => clearInterval(id);
-  }, [autoPlay, scanIndex]); // eslint-disable-line
+    if (ticketScanFeed.length === 0) return;
+    const latest = ticketScanFeed[0];
+    const result: ScanResult = {
+      id: latest.id,
+      ticketId: latest.ticketId,
+      status: latest.status,
+      gate: latest.gate,
+      timestamp: latest.timestamp,
+      reason: latest.reason,
+    };
+    setCurrent(result);
+    setHistory(prev => [result, ...prev.slice(0, 9)]);
+  }, [ticketScanFeed]);
+
+  const handleSimulate = () => {
+    simulateNextScan();
+  };
 
   return (
     <div className="space-y-5">
@@ -116,7 +81,7 @@ export default function TicketScanner() {
         </div>
 
         <div className="p-5 flex flex-col lg:flex-row gap-6">
-          {/* QR Scanner box */}
+          {/* QR Scanner box (decorative) */}
           <div className="flex-shrink-0">
             <div className="relative w-52 h-52 mx-auto rounded-2xl overflow-hidden"
               style={{ background: '#040810', border: '1px solid rgba(96,165,250,0.2)' }}>
@@ -131,33 +96,19 @@ export default function TicketScanner() {
                   style={{ borderColor: '#60a5fa' }} />
               ))}
 
-              {/* Scan line animation */}
-              <AnimatePresence>
-                {scanAnim && (
-                  <motion.div
-                    initial={{ top: '10%' }}
-                    animate={{ top: ['10%', '90%', '10%'] }}
-                    transition={{ duration: 1.1, ease: 'linear' }}
-                    className="absolute left-4 right-4 h-0.5 rounded-full"
-                    style={{ background: 'linear-gradient(90deg, transparent, #60a5fa, transparent)', boxShadow: '0 0 8px #60a5fa' }}
-                  />
-                )}
-              </AnimatePresence>
-
               {/* QR pattern (decorative) */}
               <div className="absolute inset-8 grid grid-cols-5 grid-rows-5 gap-1 opacity-20">
                 {Array.from({ length: 25 }).map((_, i) => (
                   <div key={i} className="rounded-sm"
                     style={{
                       background: Math.random() > 0.4 ? '#60a5fa' : 'transparent',
-                      opacity: scanning ? 0.3 : 1,
                     }} />
                 ))}
               </div>
 
-              {/* Idle / scanning / result state */}
+              {/* Result overlay */}
               <AnimatePresence>
-                {!scanning && current && (
+                {current && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -181,13 +132,7 @@ export default function TicketScanner() {
               {/* Status label */}
               <div className="absolute bottom-3 inset-x-3 text-center">
                 <AnimatePresence mode="wait">
-                  {scanning ? (
-                    <motion.p key="scanning"
-                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                      className="text-[10px] font-mono text-blue-400 font-bold tracking-wider">
-                      SCANNING...
-                    </motion.p>
-                  ) : current ? (
+                  {current ? (
                     <motion.p key="result"
                       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                       className="text-[10px] font-mono font-bold tracking-wider"
@@ -228,10 +173,8 @@ export default function TicketScanner() {
                   </div>
                   {current.status === 'verified' ? (
                     <div className="space-y-1">
-                      <p className="text-[12px] font-semibold text-white">{current.visitor}</p>
-                      <p className="text-[10px] font-mono text-white/40">{current.ticketId}</p>
-                      {current.seat && <p className="text-[10px] text-white/50">{current.seat}</p>}
-                      <p className="text-[10px] text-white/35">{current.gate}</p>
+                      <p className="text-[12px] font-semibold text-white">{current.ticketId}</p>
+                      <p className="text-[10px] font-mono text-white/40">{current.gate}</p>
                     </div>
                   ) : (
                     <div className="space-y-1">
@@ -267,31 +210,15 @@ export default function TicketScanner() {
             <div className="flex gap-2">
               <motion.button
                 whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                onClick={doScan} disabled={scanning}
+                onClick={handleSimulate}
                 className="flex-1 py-3 rounded-xl text-[13px] font-bold flex items-center justify-center gap-2"
                 style={{
-                  background: scanning ? 'rgba(96,165,250,0.1)' : 'linear-gradient(135deg, #60a5fa, #3b82f6)',
-                  color: scanning ? 'rgba(255,255,255,0.4)' : '#020409',
-                  boxShadow: scanning ? 'none' : '0 0 20px rgba(96,165,250,0.3)',
+                  background: 'linear-gradient(135deg, #60a5fa, #3b82f6)',
+                  color: '#020409',
+                  boxShadow: '0 0 20px rgba(96,165,250,0.3)',
                 }}>
                 <Scan size={15} />
-                {scanning ? 'Scanning...' : 'Scan Ticket'}
-              </motion.button>
-
-              <motion.button
-                whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                onClick={() => setAutoPlay(v => !v)}
-                className="px-4 py-3 rounded-xl text-[12px] font-semibold"
-                style={autoPlay ? {
-                  background: 'rgba(251,191,36,0.15)',
-                  border: '1px solid rgba(251,191,36,0.3)',
-                  color: '#fbbf24',
-                } : {
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  color: 'rgba(255,255,255,0.5)',
-                }}>
-                {autoPlay ? '⏸ Stop' : '▶ Auto'}
+                Simulate Scan
               </motion.button>
             </div>
 
@@ -313,8 +240,8 @@ export default function TicketScanner() {
                         style={{ background: cfg.bg, border: `1px solid ${cfg.border}` }}>
                         <Icon size={11} style={{ color: cfg.color, flexShrink: 0 }} />
                         <div className="flex-1 min-w-0">
-                          <p className="text-[11px] font-semibold text-white/80 truncate">{scan.visitor}</p>
-                          <p className="text-[9px] font-mono text-white/30">{scan.ticketId}</p>
+                          <p className="text-[11px] font-semibold text-white/80 truncate">{scan.ticketId}</p>
+                          <p className="text-[9px] font-mono text-white/30">{scan.gate}</p>
                         </div>
                         <span className="text-[9px] font-bold uppercase" style={{ color: cfg.color, flexShrink: 0 }}>
                           {scan.status === 'verified' ? '✓' : '✗'}

@@ -26,6 +26,7 @@ export interface Zone {
   y: number;
   width: number;
   height: number;
+  customProps?: Record<string, string>;
 }
 
 // ─── Alert Types ──────────────────────────────────────────────────────────────

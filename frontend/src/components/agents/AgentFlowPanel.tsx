@@ -23,39 +23,12 @@ const TYPE_STYLE: Record<string, { bg: string; border: string; label: string; co
   response: { bg: 'rgba(0,245,160,0.06)',   border: 'rgba(0,245,160,0.18)', label: 'RESP',    color: '#00f5a0' },
 };
 
-/* ─── Seed flag ──────────────────────────────────────────────────────────── */
-let _seeded = false;
-
-const SEED_MSGS = [
-  { from: 'crowd',        to: 'orchestrator', message: 'Gate A at 76%. Queue building — requesting redistribution.', type: 'warning',  ts: -15 },
-  { from: 'orchestrator', to: 'gate',         message: 'Acknowledged. Open Gate C to absorb Gate A load.',           type: 'action',   ts: -14 },
-  { from: 'gate',         to: 'orchestrator', message: 'Gate C opened. Signage updated. Monitoring.',                type: 'response', ts: -13 },
-  { from: 'crowd',        to: 'orchestrator', message: 'Food Court at 87%. Overflow in 4 minutes.',                  type: 'warning',  ts: -8  },
-  { from: 'orchestrator', to: 'crowd',        message: 'Recommendation queued: Open Food Stall 3.',                  type: 'action',   ts: -7  },
-  { from: 'parking',      to: 'orchestrator', message: 'Parking A at 84%. Rerouting to Lot B.',                      type: 'info',     ts: -5  },
-  { from: 'orchestrator', to: 'analytics',    message: 'Log all events for post-event analysis.',                    type: 'action',   ts: -2  },
-];
-
 export default function AgentFlowPanel() {
   const { agentMessages, addAgentMessage } = useEventStore();
   const endRef  = useRef<HTMLDivElement>(null);
   const [activeFlow, setActiveFlow] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (_seeded) return;
-    _seeded = true;
-    const now = Date.now();
-    SEED_MSGS.forEach((m, i) => {
-      setTimeout(() => {
-        addAgentMessage({
-          id: `seed_${now}_${i}`,
-          from: m.from as AgentType, to: m.to as AgentType,
-          message: m.message, type: m.type as any,
-          timestamp: new Date(now + m.ts * 60000), animated: false,
-        });
-      }, i * 80);
-    });
-  }, []); // eslint-disable-line
+  // seeding is now done in the store — no local seed needed
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
