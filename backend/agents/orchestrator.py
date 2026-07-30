@@ -18,6 +18,8 @@ def orchestrate():
     """Check state every 30 seconds and coordinate agents."""
     while True:
         time.sleep(30)
+        from agents.parking_agent import check_and_alert as parking_check
+        parking_check()
         for zone in ZONES:
             if zone["riskLevel"] == "critical":
                 _msg("orchestrator", "crowd",

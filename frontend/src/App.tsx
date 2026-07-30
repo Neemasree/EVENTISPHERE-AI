@@ -16,7 +16,7 @@ import IncidentsPage from './pages/IncidentsPage';
 import ReplayPage from './pages/ReplayPage';
 import TicketsPage from './pages/TicketsPage';
 import EmergencyPage from './pages/EmergencyPage';
-
+import ParkingPage from './pages/ParkingPage';
 import VenueBuilderPage from './pages/VenueBuilderPage';
 
 function App() {
@@ -45,6 +45,7 @@ function App() {
             <Route path="/incidents"    element={<IncidentsPage />} />
             <Route path="/replay"       element={<ReplayPage />} />
             <Route path="/tickets"      element={<TicketsPage />} />
+            <Route path="/parking"      element={<ParkingPage />} />
             <Route path="/emergency"    element={<EmergencyPage />} />
             <Route path="/builder"      element={<VenueBuilderPage />} />
             <Route path="*"             element={<Navigate to="/dashboard" replace />} />

@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, MapPin, Flame, Users, Bell, BarChart3,
   Bot, Zap, Clock, BellRing, AlertTriangle, Play,
-  ChevronLeft, Shield, Activity, Ticket, Ambulance, Trophy, Layers
+  ChevronLeft, Shield, Activity, Ticket, Ambulance, Trophy, Layers, Car
 } from 'lucide-react';
 import { useEventStore } from '../../store/eventStore';
 import SimulationDemo from '../demo/SimulationDemo';
@@ -15,9 +15,10 @@ const navGroups = [
     id: 'main',
     label: 'Overview',
     items: [
-      { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard'  },
-      { to: '/venue',     icon: MapPin,           label: 'Venue Map'  },
-      { to: '/heatmap',   icon: Flame,            label: 'Heat Map'   },
+      { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard'    },
+      { to: '/venue',     icon: MapPin,           label: 'Venue Map'    },
+      { to: '/heatmap',   icon: Flame,            label: 'Heat Map'     },
+      { to: '/builder',   icon: Layers,           label: 'Twin Builder' },
     ],
   },
   {
@@ -25,7 +26,7 @@ const navGroups = [
     label: 'Operations',
     items: [
       { to: '/crowd',         icon: Users,         label: 'Crowd Intel'   },
-      { to: '/builder',       icon: Layers,        label: 'Twin Builder'  },
+      { to: '/parking',       icon: Car,           label: 'Parking'       },
       { to: '/tickets',       icon: Ticket,        label: 'Tickets'       },
       { to: '/emergency',     icon: Ambulance,     label: 'Emergency'     },
       { to: '/alerts',        icon: Bell,          label: 'Alerts',       badge: 'alerts' },

@@ -224,10 +224,12 @@ def ask():
     top_alert = alerts[0] if alerts else {}
 
     if any(k in q for k in ("risk", "biggest", "status", "situation", "summar", "operational")):
+        visitors  = summary.get('activeVisitors', 0) or 0
+        total_cap = summary.get('totalCapacity', 0) or 0
         answer = (
             f"## \U0001f6a8 Situation Summary\n\n"
             f"**Overall Risk:** {'\U0001f534' if risk.lower() in ('high','critical') else '\U0001f7e1'} {risk.upper()}\n\n"
-            f"**Active Visitors:** {summary.get('activeVisitors','N/A'):,} / {summary.get('totalCapacity','N/A'):,} "
+            f"**Active Visitors:** {visitors:,} / {total_cap:,} "
             f"({summary.get('occupancyPercent','N/A')}%) | Avg wait: {summary.get('avgWaitTimeMin','N/A')} min\n\n"
             f"**Primary Issue:** {top_zone.get('name','N/A')} at {top_zone.get('occupancyPercent','N/A')}% "
             f"({top_zone.get('currentOccupancy','N/A')} / {top_zone.get('capacity','N/A')}) - "
@@ -302,10 +304,12 @@ def ask():
         answer = "\n\n".join(lines)
 
     else:
+        visitors  = summary.get('activeVisitors', 0) or 0
+        total_cap = summary.get('totalCapacity', 0) or 0
         answer = (
             f"## \U0001f4ca Operational Status\n\n"
             f"**Event:** {summary.get('event','N/A')} | **Risk:** {risk.upper()}\n\n"
-            f"**Crowd:** {summary.get('activeVisitors','N/A'):,} / {summary.get('totalCapacity','N/A'):,} "
+            f"**Crowd:** {visitors:,} / {total_cap:,} "
             f"({summary.get('occupancyPercent','N/A')}%)\n\n"
             f"**Critical Zones:** {summary.get('criticalZones','N/A')} | "
             f"**High-Risk:** {summary.get('highRiskZones','N/A')} | "

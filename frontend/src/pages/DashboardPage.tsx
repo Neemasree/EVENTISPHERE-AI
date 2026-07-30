@@ -4,6 +4,7 @@ import { useEventStore } from '../store/eventStore';
 import KPICard from '../components/dashboard/KPICard';
 import DigitalTwinVenue from '../components/venue/DigitalTwinVenue';
 import AlertCenter from '../components/alerts/AlertCenter';
+import SituationReport from '../components/dashboard/SituationReport';
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 16 },
@@ -29,9 +30,12 @@ export default function DashboardPage() {
     <div className="space-y-6 max-w-[1400px] mx-auto">
 
       {/* Header */}
-      <div>
-        <h1 className="page-title">Mission Control</h1>
-        <p className="page-subtitle">Live event overview — all systems nominal</p>
+      <div className="flex items-start justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="page-title">Mission Control</h1>
+          <p className="page-subtitle">Live event overview — all systems nominal</p>
+        </div>
+        <SituationReport />
       </div>
 
       {/* KPI row */}
