@@ -24,7 +24,7 @@ type FilterType = typeof FILTERS[number];
 
 export default function TimelinePage() {
   const timeline = useEventStore(s => s.timeline);
-  const [filter, setFilter] = useState<Filter>('all');
+  const [filter, setFilter] = useState<FilterType>('all');
 
   const filtered = useMemo(() => {
     const items = filter === 'all' ? timeline : timeline.filter(e => e.type === filter);

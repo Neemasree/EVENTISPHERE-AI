@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, X, MapPin, Calendar, Users, Radio, ChevronRight, Pencil, ChevronLeft, Layers } from 'lucide-react';
+import { MapPin, Calendar, Users, Radio, ChevronRight, Pencil, ChevronLeft, Layers } from 'lucide-react';
 import { useEventStore } from '../store/eventStore';
 import DigitalTwinVenue from '../components/venue/DigitalTwinVenue';
 import DigitalTwinBuilder from '../components/builder/DigitalTwinBuilder';
 import CrowdStats from '../components/crowd/CrowdStats';
-import type { Event, Zone } from '../types';
+import type { Zone } from '../types';
 
 const STATUS_CFG = {
   live:     { color: '#00f5a0', label: 'Live',     dot: true  },
@@ -15,60 +15,23 @@ const STATUS_CFG = {
 };
 
 export default function VenuePage() {
-  const { events, activeEventId, setActiveEvent, addEvent, setZones } = useEventStore();
+  const { events, activeEventId, setActiveEvent, setZones } = useEventStore();
   const activeEvent = events.find(e => e.id === activeEventId) ?? events[0];
 
-  const [showAdd, setShowAdd]   = useState(false);
   const [editTwin, setEditTwin] = useState(false);
-  const [form, setForm]         = useState({ name: '', location: '', date: '', capacity: '' });
-  const [formErr, setFormErr]   = useState('');
 
   const handleSaveTwin = (finalZones: Zone[]) => {
     setZones(finalZones);
     setEditTwin(false);
   };
 
-  const handleAdd = () => {
-    if (!form.name.trim())     return setFormErr('Event name is required.');
-    if (!form.location.trim()) return setFormErr('Location is required.');
-    if (!form.date)            return setFormErr('Date is required.');
-    if (!form.capacity || isNaN(+form.capacity) || +form.capacity < 1)
-      return setFormErr('Enter a valid capacity.');
-    setFormErr('');
-    const newEvent: Event = {
-      id: `ev_${Date.now()}`,
-      name: form.name.trim(),
-      location: form.location.trim(),
-      date: form.date,
-      status: new Date(form.date) > new Date() ? 'upcoming' : 'live',
-      totalCapacity: +form.capacity,
-      zones: [],
-    };
-    addEvent(newEvent);
-    setForm({ name: '', location: '', date: '', capacity: '' });
-    setShowAdd(false);
-  };
-
   return (
     <div className="space-y-5 w-full max-w-[1400px] mx-auto">
 
       {/* Header */}
-      <div className="flex items-start justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="page-title">Venue Map</h1>
-          <p className="page-subtitle">Interactive zone map — click any zone for live details</p>
-        </div>
-        <motion.button
-          whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-          onClick={() => setShowAdd(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[12px] font-bold"
-          style={{
-            background: 'linear-gradient(135deg, rgba(0,212,255,0.15), rgba(168,85,247,0.1))',
-            border: '1px solid rgba(0,212,255,0.25)',
-            color: '#00d4ff',
-          }}>
-          <Plus size={13} /> Add Event
-        </motion.button>
+      <div>
+        <h1 className="page-title">Venue Map</h1>
+        <p className="page-subtitle">Interactive zone map — click any zone for live details</p>
       </div>
 
       {/* Event switcher */}
@@ -199,81 +162,7 @@ export default function VenuePage() {
         </div>
       )}
 
-      {/* Add Event Modal */}
-      <AnimatePresence>
-        {showAdd && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}
-            onClick={() => setShowAdd(false)}>
-            <motion.div
-              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
-              transition={{ type: 'spring', stiffness: 350, damping: 28 }}
-              onClick={e => e.stopPropagation()}
-              className="w-full max-w-md rounded-2xl overflow-hidden"
-              style={{ background: 'rgba(8,16,32,0.98)', border: '1px solid rgba(0,212,255,0.2)', boxShadow: '0 0 60px rgba(0,212,255,0.1), 0 30px 80px rgba(0,0,0,0.7)' }}>
 
-              <div className="h-px" style={{ background: 'linear-gradient(90deg, transparent, #00d4ff, transparent)' }} />
-
-              <div className="flex items-center justify-between px-5 py-4"
-                style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-                <div>
-                  <p className="text-[15px] font-bold text-white">Add New Event</p>
-                  <p className="text-[10px] text-white/30 mt-0.5">Register a new event to monitor</p>
-                </div>
-                <button onClick={() => setShowAdd(false)}
-                  className="w-8 h-8 rounded-xl flex items-center justify-center text-white/40 hover:text-white transition-colors"
-                  style={{ background: 'rgba(255,255,255,0.05)' }}>
-                  <X size={14} />
-                </button>
-              </div>
-
-              <div className="p-5 space-y-4">
-                {([
-                  { key: 'name',     label: 'Event Name',     placeholder: 'e.g. Summer Music Festival', type: 'text'   },
-                  { key: 'location', label: 'Location',       placeholder: 'e.g. Central Arena, Mumbai', type: 'text'   },
-                  { key: 'date',     label: 'Event Date',     placeholder: '',                            type: 'date'   },
-                  { key: 'capacity', label: 'Total Capacity', placeholder: 'e.g. 15000',                 type: 'number' },
-                ] as const).map(f => (
-                  <div key={f.key}>
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mb-1.5">{f.label}</p>
-                    <input
-                      type={f.type}
-                      value={form[f.key]}
-                      onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
-                      placeholder={f.placeholder}
-                      className="input-field text-sm w-full"
-                    />
-                  </div>
-                ))}
-
-                {formErr && (
-                  <p className="text-[11px] px-3 py-2 rounded-xl"
-                    style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.2)', color: '#f87171' }}>
-                    ⚠ {formErr}
-                  </p>
-                )}
-
-                <div className="flex gap-2 pt-1">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-                    onClick={handleAdd}
-                    className="flex-1 py-2.5 rounded-xl text-[13px] font-bold"
-                    style={{ background: 'linear-gradient(135deg,#00d4ff,#0088cc)', color: '#020409', boxShadow: '0 0 20px rgba(0,212,255,0.3)' }}>
-                    Create Event
-                  </motion.button>
-                  <button onClick={() => setShowAdd(false)}
-                    className="px-4 py-2.5 rounded-xl text-[12px] text-white/40 hover:text-white/70 transition-colors"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

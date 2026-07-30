@@ -44,7 +44,7 @@ export default function AppShell({ children }: Props) {
       <div className="flex flex-col flex-1 overflow-hidden relative z-10">
         <Navbar />
 
-        <main className="flex-1 overflow-y-auto overflow-x-hidden pb-4">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden pb-4 relative">
           <motion.div
             key="page-content"
             initial={{ opacity: 0, y: 12 }}

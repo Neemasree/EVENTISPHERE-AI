@@ -290,14 +290,30 @@ export const useEventStore = create<EventState>((set, get) => ({
 
   tickLiveData: () => set(s => {
     const nudge = (v: number, max: number) => Math.min(max, Math.max(0, v + Math.floor((Math.random() - 0.48) * 12)));
+    const newAlerts: Alert[] = [];
+    const now2 = new Date();
     const zones = s.zones.map(z => {
       const c = nudge(z.currentCrowd, z.maxCapacity);
       const occ = Math.round((c / z.maxCapacity) * 100);
       const risk: RiskLevel = occ >= 95 ? 'critical' : occ >= 80 ? 'high' : occ >= 60 ? 'medium' : 'low';
+      // Fire capacity-breach alert + voice when zone first crosses 100%
+      if (c >= z.maxCapacity && z.currentCrowd < z.maxCapacity) {
+        newAlerts.push({
+          id: `cap_${z.id}_${Date.now()}`,
+          severity: 'critical',
+          title: `${z.name} Over Capacity!`,
+          message: `${z.name} has exceeded maximum capacity (${z.maxCapacity.toLocaleString()}). Immediate action required.`,
+          zone: z.name,
+          timestamp: now2,
+          read: false,
+          dismissed: false,
+        });
+      }
       return { ...z, currentCrowd: c, occupancy: occ, riskLevel: risk };
     });
+    const alerts = newAlerts.length ? [...newAlerts, ...s.alerts] : s.alerts;
     const recs = generateRecommendations(zones);
-    return { zones, recommendations: recs, kpi: computeKPI(zones, s.alerts, recs) };
+    return { zones, alerts, recommendations: recs, kpi: computeKPI(zones, alerts, recs) };
   }),
 
   refreshRecommendations: () => set(s => {

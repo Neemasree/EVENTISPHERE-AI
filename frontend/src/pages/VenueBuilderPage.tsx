@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, ChevronLeft, Layers } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -50,10 +51,10 @@ export default function VenueBuilderPage() {
     navigate('/venue');
   };
 
-  // Step 2 is full-screen builder
+  // Step 2 is full-screen builder — rendered as absolute overlay within the page flow
   if (step === 2) {
-    return (
-      <div className="fixed inset-0 z-40 flex flex-col" style={{ background: '#020810' }}>
+    return createPortal(
+      <div className="fixed inset-0 flex flex-col" style={{ background: '#020810', zIndex: 9999 }}>
         {/* Builder header */}
         <div className="flex items-center justify-between px-5 py-3 flex-shrink-0"
           style={{ background: 'rgba(6,12,22,0.97)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
@@ -76,7 +77,8 @@ export default function VenueBuilderPage() {
         <div className="flex-1 overflow-hidden">
           <DigitalTwinBuilder initialZones={zones} onSave={handleSave} />
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
