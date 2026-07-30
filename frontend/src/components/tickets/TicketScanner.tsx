@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, XCircle, Scan, Wifi, AlertTriangle, KeyRound, Send, Clock, BadgeCheck } from 'lucide-react';
 import { useEventStore, verifyTicket } from '../../store/eventStore';
+import { verifyTicketApi } from '../../services/api';
 
 type ScanStatus = 'verified' | 'duplicate' | 'rejected';
 type RequestStatus = 'idle' | 'pending' | 'approved' | 'denied';
@@ -49,6 +50,7 @@ export default function TicketScanner() {
   const { simulateNextScan, ticketScanFeed } = useEventStore();
   const [current,  setCurrent]  = useState<ScanResult | null>(null);
   const [history,  setHistory]  = useState<ScanResult[]>([]);
+  const [scanning, setScanning] = useState(false);
 
   // Access request state
   const [reqForm,    setReqForm]    = useState({ ticketId: '', name: '', reason: '' });
@@ -72,6 +74,31 @@ export default function TicketScanner() {
     setCurrent(result);
     setHistory(prev => [result, ...prev.slice(0, 9)]);
   }, [ticketScanFeed]);
+
+  const handleScan = async () => {
+    setScanning(true);
+    // Pick a ticket ID from the seeded range
+    const ticketId = `EVT-2024-${15400 + Math.floor(Math.random() * 200)}`;
+    const gate = `Gate ${String.fromCharCode(65 + Math.floor(Math.random() * 4))}`;
+    try {
+      const data = await verifyTicketApi(ticketId, gate);
+      const result: ScanResult = {
+        id: `scan_${Date.now()}`,
+        ticketId,
+        status: data.status as ScanStatus,
+        gate,
+        timestamp: new Date(),
+        reason: data.reason ?? '',
+      };
+      setCurrent(result);
+      setHistory(prev => [result, ...prev.slice(0, 9)]);
+    } catch {
+      // fallback to store simulation
+      simulateNextScan();
+    } finally {
+      setScanning(false);
+    }
+  };
 
   const handleRequestSubmit = () => {
     if (!reqForm.ticketId.trim()) return setReqError('Ticket ID is required.');
@@ -215,10 +242,11 @@ export default function TicketScanner() {
             </div>
 
             <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-              onClick={() => simulateNextScan()}
-              className="w-full py-3 rounded-xl text-[13px] font-bold flex items-center justify-center gap-2"
+              onClick={handleScan}
+              disabled={scanning}
+              className="w-full py-3 rounded-xl text-[13px] font-bold flex items-center justify-center gap-2 disabled:opacity-60"
               style={{ background: 'linear-gradient(135deg, #60a5fa, #3b82f6)', color: '#020409', boxShadow: '0 0 20px rgba(96,165,250,0.3)' }}>
-              <Scan size={15} /> Simulate Scan
+              <Scan size={15} /> {scanning ? 'Scanning…' : 'Simulate Scan'}
             </motion.button>
 
             <div>

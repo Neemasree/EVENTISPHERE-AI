@@ -32,6 +32,15 @@ export const getHourlyData   = () => api.get('/analytics/hourly').then(r => r.da
 export const getZoneAnalytics = () => api.get('/analytics/zones').then(r => r.data);
 export const getReport       = () => api.get('/analytics/report').then(r => r.data);
 
+// ── Tickets ──────────────────────────────────────────────────────────────
+export const getTicketStats  = () => api.get('/tickets/stats').then(r => r.data);
+export const verifyTicketApi = (ticketId: string, gate: string) => api.post('/tickets/verify', { ticketId, gate }).then(r => r.data);
+
+// ── Parking ────────────────────────────────────────────────────────────────
+export const getParkingAnalysis = () => api.get('/parking/analyse').then(r => r.data);
+export const getParkingReport   = () => api.get('/parking/report').then(r => r.data);
+export const rerouteParking     = (from_lot: string, to_lot: string) => api.post('/parking/reroute', { from_lot, to_lot }).then(r => r.data);
+
 // ── Simulator ──────────────────────────────────────────────────────────────
 export const triggerScenario = (scenario: string) =>
   api.post('/simulator/trigger', { scenario }).then(r => r.data);

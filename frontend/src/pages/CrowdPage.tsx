@@ -1,8 +1,25 @@
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useEventStore } from '../store/eventStore';
 import CrowdStats from '../components/crowd/CrowdStats';
 import CrowdAgentPanel from '../components/crowd/CrowdAgentPanel';
+import { getCrowdStatus, getCrowdPredictions } from '../services/api';
 
 export default function CrowdPage() {
+  const setZones = useEventStore(s => s.setZones);
+
+  useEffect(() => {
+    const sync = () => {
+      getCrowdStatus()
+        .then(data => { if (data?.zones) setZones(data.zones); })
+        .catch(() => {});
+      getCrowdPredictions().catch(() => {});
+    };
+    sync();
+    const id = setInterval(sync, 10000);
+    return () => clearInterval(id);
+  }, [setZones]);
+
   return (
     <div className="space-y-5 max-w-[1400px] mx-auto">
       <div>

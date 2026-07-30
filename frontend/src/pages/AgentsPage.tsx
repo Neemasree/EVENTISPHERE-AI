@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEventStore } from '../store/eventStore';
 import AgentFlowPanel from '../components/agents/AgentFlowPanel';
 import AIDecisionEngine from '../components/agents/AIDecisionEngine';
 import type { AgentStatus } from '../types';
 import { Brain, Zap, MessageSquare, Activity } from 'lucide-react';
+import { getAgentsStatus, getAgentMessages } from '../services/api';
 
 const STATUS_CFG: Record<AgentStatus, { color: string; bg: string; border: string; label: string }> = {
   active:     { color: '#00f5a0', bg: 'rgba(0,245,160,0.07)',  border: 'rgba(0,245,160,0.2)',  label: 'Active'     },
@@ -26,7 +27,43 @@ const ROLE_DESC: Record<string, string> = {
 export default function AgentsPage() {
   const agents = useEventStore(s => s.agents);
   const agentMessages = useEventStore(s => s.agentMessages);
+  const addAgentMessage = useEventStore(s => s.addAgentMessage);
+  const setAgents = useEventStore(s => s.setAgents);
   const [activeTab, setActiveTab] = useState<'network' | 'decisions'>('network');
+
+  // Poll backend for live agent statuses and messages every 8s
+  useEffect(() => {
+    const sync = () => {
+      getAgentsStatus()
+        .then((d: any) => {
+          if (Array.isArray(d?.agents)) {
+            // Merge backend status/messagesProcessed into store agents (keep icon + lastAction from store)
+            const backendMap: Record<string, any> = {};
+            d.agents.forEach((a: any) => { backendMap[a.id] = a; });
+            setAgents(
+              useEventStore.getState().agents.map(a =>
+                backendMap[a.id]
+                  ? { ...a, status: backendMap[a.id].status, messagesProcessed: backendMap[a.id].messagesProcessed }
+                  : a
+              )
+            );
+          }
+        })
+        .catch(() => {});
+      getAgentMessages()
+        .then((d: any) => {
+          if (Array.isArray(d?.messages)) {
+            d.messages.slice(-5).forEach((m: any) => {
+              addAgentMessage({ ...m, timestamp: new Date(m.timestamp), animated: false });
+            });
+          }
+        })
+        .catch(() => {});
+    };
+    sync();
+    const id = setInterval(sync, 8000);
+    return () => clearInterval(id);
+  }, [addAgentMessage, setAgents]);
 
   const totalMsgs = agents.reduce((s, a) => s + a.messagesProcessed, 0);
   const alertCount = agents.filter(a => a.status === 'alert').length;

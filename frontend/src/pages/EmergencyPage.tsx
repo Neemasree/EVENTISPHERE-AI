@@ -282,7 +282,7 @@ function AIChat({ category, location }: { category: string; location: string }) 
     try {
       const res = await fetch('/api/ask', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: text, context: { category, location } }),
+        body: JSON.stringify({ question: text, eventContext: { category, location } }),
       });
       if (res.ok) {
         const d = await res.json();

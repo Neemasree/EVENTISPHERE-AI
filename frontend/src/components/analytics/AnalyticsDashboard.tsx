@@ -5,6 +5,8 @@ import {
 } from 'recharts';
 import { motion } from 'framer-motion';
 import { useEventStore } from '../../store/eventStore';
+import { getKPI, getHourlyData } from '../../services/api';
+import { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 
 const tooltipStyle = {
@@ -36,7 +38,14 @@ function ChartCard({ title, subtitle, children, delay = 0 }: {
 }
 
 export default function AnalyticsDashboard() {
-  const { kpi, zones, alerts, incidents, timeline } = useEventStore();
+  const { kpi: storeKpi, zones, alerts, incidents } = useEventStore();
+  const [kpi, setKpi] = useState(storeKpi);
+  const [hourlyData, setHourlyData] = useState<any[]>([]);
+
+  useEffect(() => {
+    getKPI().then(d => setKpi(d)).catch(() => {});
+    getHourlyData().then(d => setHourlyData(d.data ?? [])).catch(() => {});
+  }, []);
 
   // ── Zone occupancy bar (real) ──────────────────────────────────────────────
   const zoneBar = zones.map(z => ({
@@ -53,39 +62,38 @@ export default function AnalyticsDashboard() {
     { name: 'Critical (95%+)', value: zones.filter(z => z.occupancy >= 95).length,                         color: '#f43f5e' },
   ].filter(d => d.value > 0);
 
-  // ── Hourly visitor trend from timeline events ──────────────────────────────
+  // ── Hourly visitor trend — from backend, fallback to derived ────────────
   const now = new Date();
-  const hourlyMap: Record<string, { visitors: number; incidents: number }> = {};
-  for (let h = -6; h <= 0; h++) {
-    const d = new Date(now.getTime() + h * 3600000);
-    const key = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-    hourlyMap[key] = { visitors: 0, incidents: 0 };
-  }
-  // distribute current crowd across hours as a ramp
-  const totalCrowd = kpi.currentCrowd;
-  const hourKeys = Object.keys(hourlyMap);
-  hourKeys.forEach((k, i) => {
-    const frac = (i + 1) / hourKeys.length;
-    hourlyMap[k].visitors = Math.round(totalCrowd * frac * (0.7 + Math.random() * 0.3));
-  });
-  // map incidents to hours
-  incidents.forEach(inc => {
-    const key = inc.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-    if (hourlyMap[key]) hourlyMap[key].incidents++;
-  });
-  const hourlyData = hourKeys.map(k => ({
-    hour: k,
-    visitors: hourlyMap[k].visitors,
-    capacity: kpi.totalCapacity || 15000,
-    incidents: hourlyMap[k].incidents,
-  }));
+  const derivedHourly = (() => {
+    const hourlyMap: Record<string, { visitors: number; incidents: number }> = {};
+    for (let h = -6; h <= 0; h++) {
+      const d = new Date(now.getTime() + h * 3600000);
+      const key = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+      hourlyMap[key] = { visitors: 0, incidents: 0 };
+    }
+    const totalCrowd = kpi.currentCrowd;
+    const hourKeys = Object.keys(hourlyMap);
+    hourKeys.forEach((k, i) => {
+      const frac = (i + 1) / hourKeys.length;
+      hourlyMap[k].visitors = Math.round(totalCrowd * frac * (0.7 + Math.random() * 0.3));
+    });
+    incidents.forEach(inc => {
+      const key = inc.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+      if (hourlyMap[key]) hourlyMap[key].incidents++;
+    });
+    return Object.keys(hourlyMap).map(k => ({
+      hour: k, visitors: hourlyMap[k].visitors,
+      capacity: kpi.totalCapacity || 15000, incidents: hourlyMap[k].incidents,
+    }));
+  })();
+  const chartHourly = hourlyData.length > 0 ? hourlyData : derivedHourly;
 
-  // ── Inflow / outflow (derived from flow rate + occupancy trend) ────────────
-  const flowData = hourKeys.map((k, i) => {
+  // ── Inflow / outflow ──────────────────────────────────────────────────────
+  const flowData = chartHourly.map((row: any, i: number) => {
     const base = kpi.flowRate || 240;
-    const frac = i / (hourKeys.length - 1);
+    const frac = i / Math.max(chartHourly.length - 1, 1);
     return {
-      time: k,
+      time: row.hour ?? row.time,
       inflow:  Math.round(base * (1 - frac) * (0.8 + Math.random() * 0.4)),
       outflow: Math.round(base * frac       * (0.8 + Math.random() * 0.4)),
     };
@@ -127,7 +135,7 @@ export default function AnalyticsDashboard() {
       {/* Visitor flow */}
       <ChartCard title="Visitor Flow Over Time" subtitle="Hourly attendance vs. venue capacity" delay={0.1}>
         <ResponsiveContainer width="100%" height={200}>
-          <AreaChart data={hourlyData}>
+          <AreaChart data={chartHourly}>
             <defs>
               <linearGradient id="visGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%"  stopColor="#00d4ff" stopOpacity={0.35} />

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useEventStore } from '../store/eventStore';
 import type { ScenarioType } from '../types';
 import { Zap, ArrowRight, Clock, AlertTriangle, CheckCircle, Info, TrendingUp } from 'lucide-react';
+import { triggerScenario as triggerScenarioApi } from '../services/api';
 
 const SCENARIO_GROUPS = [
   {
@@ -72,7 +73,10 @@ export default function SimulatorPage() {
     const beforeMsgs     = agentMessages.length;
     const beforeTimeline = timeline.length;
 
+    // Fire store update immediately for live UI
     triggerScenario(id as ScenarioType);
+    // Also POST to backend so server state stays in sync
+    triggerScenarioApi(id).catch(() => {});
 
     setTimeout(() => {
       const store = useEventStore.getState();

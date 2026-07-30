@@ -64,13 +64,13 @@ const initialEvents: Event[] = [
 ];
 
 const initialAgents: Agent[] = [
-  { id: 'orchestrator', name: 'Orchestrator', status: 'active', lastAction: 'Coordinating cross-agent alerts', messagesProcessed: 284, icon: '🧠' },
-  { id: 'crowd', name: 'Crowd Agent', status: 'alert', lastAction: 'Food Court at 87% — predicting overflow in 4 min', messagesProcessed: 512, icon: '👥' },
-  { id: 'parking', name: 'Parking Agent', status: 'processing', lastAction: 'Redirecting vehicles from Lot A → Lot B', messagesProcessed: 198, icon: '🚗' },
-  { id: 'gate', name: 'Gate Agent', status: 'active', lastAction: 'Gate C opened — distributing load', messagesProcessed: 341, icon: '🚪' },
-  { id: 'ticket', name: 'Ticket Agent', status: 'active', lastAction: 'Verified 14,832 tickets — 2 duplicates blocked', messagesProcessed: 14834, icon: '🎫' },
-  { id: 'emergency', name: 'Emergency Agent', status: 'idle', lastAction: 'All teams on standby — no active incidents', messagesProcessed: 47, icon: '🚨' },
-  { id: 'analytics', name: 'Analytics Agent', status: 'active', lastAction: 'Generating peak-hour trend report', messagesProcessed: 891, icon: '📊' },
+  { id: 'orchestrator', name: 'Orchestrator',    status: 'idle', lastAction: 'Waiting for events…', messagesProcessed: 0, icon: '🧠' },
+  { id: 'crowd',        name: 'Crowd Agent',     status: 'idle', lastAction: 'Waiting for events…', messagesProcessed: 0, icon: '👥' },
+  { id: 'parking',      name: 'Parking Agent',   status: 'idle', lastAction: 'Waiting for events…', messagesProcessed: 0, icon: '🚗' },
+  { id: 'gate',         name: 'Gate Agent',      status: 'idle', lastAction: 'Waiting for events…', messagesProcessed: 0, icon: '🚪' },
+  { id: 'ticket',       name: 'Ticket Agent',    status: 'idle', lastAction: 'Waiting for events…', messagesProcessed: 0, icon: '🎫' },
+  { id: 'emergency',    name: 'Emergency Agent', status: 'idle', lastAction: 'Waiting for events…', messagesProcessed: 0, icon: '🚨' },
+  { id: 'analytics',    name: 'Analytics Agent', status: 'idle', lastAction: 'Waiting for events…', messagesProcessed: 0, icon: '📊' },
 ];
 
 const now = new Date();
@@ -140,6 +140,7 @@ export interface EventState {
   addNotification: (n: Notification) => void;
   addEvent: (e: Event) => void;
   setActiveEvent: (id: string) => void;
+  setAgents: (agents: Agent[]) => void;
   setZones: (zones: Zone[]) => void;
   triggerScenario: (scenario: ScenarioType) => void;
   addChatMessage: (msg: ChatMessage) => void;
@@ -213,15 +214,7 @@ export const useEventStore = create<EventState>((set, get) => ({
   recommendations: initialRecommendations,
   predictions: initialPredictions,
   agents: initialAgents,
-  agentMessages: [
-    { id: 'seed_0', from: 'crowd',        to: 'orchestrator', message: 'Gate A at 76%. Queue building — requesting gate redistribution.', type: 'warning',  timestamp: ts(15), animated: false },
-    { id: 'seed_1', from: 'orchestrator', to: 'gate',         message: 'Acknowledged. Open Gate C to absorb Gate A load.',               type: 'action',   timestamp: ts(14), animated: false },
-    { id: 'seed_2', from: 'gate',         to: 'orchestrator', message: 'Gate C opened. Signage updated. Monitoring redistribution.',      type: 'response', timestamp: ts(13), animated: false },
-    { id: 'seed_3', from: 'crowd',        to: 'orchestrator', message: 'Food Court at 87%. Overflow predicted in 4 minutes.',             type: 'warning',  timestamp: ts(8),  animated: false },
-    { id: 'seed_4', from: 'orchestrator', to: 'crowd',        message: 'Recommendation queued: Open Food Stall 3. Awaiting approval.',    type: 'action',   timestamp: ts(7),  animated: false },
-    { id: 'seed_5', from: 'parking',      to: 'orchestrator', message: 'Parking A at 84%. Rerouting arrivals to Lot B.',                  type: 'info',     timestamp: ts(5),  animated: false },
-    { id: 'seed_6', from: 'orchestrator', to: 'analytics',    message: 'Log all events for post-event analysis report.',                  type: 'action',   timestamp: ts(2),  animated: false },
-  ],
+  agentMessages: [],
   timeline: initialTimeline,
   notifications: [],
   incidents: [
@@ -253,6 +246,7 @@ export const useEventStore = create<EventState>((set, get) => ({
     if (!ev) return {};
     return { activeEventId: id, zones: ev.zones.length ? ev.zones : s.zones };
   }),
+  setAgents: (agents) => set({ agents }),
   setZones: (zones) => set(s => {
     const updatedEvents = s.events.map(e => e.id === s.activeEventId ? { ...e, zones } : e);
     const recs = generateRecommendations(zones);

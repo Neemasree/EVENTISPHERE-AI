@@ -2,6 +2,7 @@ import AlertCenter from '../components/alerts/AlertCenter';
 import { useEventStore } from '../store/eventStore';
 import { motion } from 'framer-motion';
 import { Bell, AlertCircle, AlertTriangle, Info, CheckCircle } from 'lucide-react';
+import { dismissAlert as dismissAlertApi } from '../services/api';
 
 const severityMeta = {
   critical: { icon: AlertCircle,  color: '#f43f5e', bg: 'rgba(244,63,94,0.08)',  border: 'rgba(244,63,94,0.25)'  },

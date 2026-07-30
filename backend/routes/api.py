@@ -44,10 +44,15 @@ def _get_plan(category: str):
 # ── POST /emergency ───────────────────────────────────────────────────────────
 @api_bp.route("/emergency", methods=["POST"])
 def emergency():
+    from agents import emergency_agent
     data     = request.get_json(force=True) or {}
     category = data.get("category", "Medical")
     location = data.get("location", "Main Stage")
     priority = data.get("priority", "High")
+
+    # Agent layer: write alert + notify orchestrator via AGENT_MESSAGES
+    inc_type = category.lower().replace(" ", "_")
+    emergency_agent.report_incident(inc_type, location, f"{priority} priority {category} incident at {location}.")
 
     plan, teams = _get_plan(category)
     known_cats  = set(DEFAULT_PLANS.keys())

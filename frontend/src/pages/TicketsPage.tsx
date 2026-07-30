@@ -1,11 +1,20 @@
+import { useState, useEffect } from 'react';
 import TicketScanner from '../components/tickets/TicketScanner';
 import { motion } from 'framer-motion';
 import { useEventStore } from '../store/eventStore';
 import { Shield, Scan, CheckCircle } from 'lucide-react';
+import { getTicketStats } from '../services/api';
 
 export default function TicketsPage() {
   const agents = useEventStore(s => s.agents);
   const ticketAgent = agents.find(a => a.id === 'ticket');
+  const [stats, setStats] = useState({ totalScanned: 0, verified: 0, rejected: 0 });
+
+  useEffect(() => {
+    getTicketStats()
+      .then((d: any) => setStats({ totalScanned: d.totalScanned, verified: d.verified, rejected: d.rejected }))
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="space-y-5 max-w-[1200px] mx-auto">
@@ -31,9 +40,9 @@ export default function TicketsPage() {
       {/* Stats summary */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { icon: <Scan size={16} />,       label: 'Total Scanned',   value: '14,834', color: '#00d4ff' },
-          { icon: <CheckCircle size={16} />, label: 'Verified',        value: '14,832', color: '#00f5a0' },
-          { icon: <Shield size={16} />,     label: 'Fraud Blocked',   value: '2',      color: '#f43f5e' },
+          { icon: <Scan size={16} />,        label: 'Total Scanned', value: stats.totalScanned.toLocaleString(), color: '#00d4ff' },
+          { icon: <CheckCircle size={16} />, label: 'Verified',      value: stats.verified.toLocaleString(),     color: '#00f5a0' },
+          { icon: <Shield size={16} />,      label: 'Fraud Blocked', value: stats.rejected.toLocaleString(),     color: '#f43f5e' },
         ].map((s, i) => (
           <motion.div key={s.label}
             initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}

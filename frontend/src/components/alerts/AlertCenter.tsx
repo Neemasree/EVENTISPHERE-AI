@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, AlertTriangle, AlertCircle, Info, CheckCircle, Bell, MapPin, Clock } from 'lucide-react';
 import { useEventStore } from '../../store/eventStore';
+import { dismissAlert as dismissAlertApi } from '../../services/api';
 import { formatTimeAgo } from '../../utils/helpers';
 import type { AlertSeverity } from '../../types';
 
@@ -134,7 +135,11 @@ export default function AlertCenter({ compact, maxItems }: Props) {
 
                 {/* Dismiss */}
                 <button
-                  onClick={e => { e.stopPropagation(); dismissAlert(alert.id); }}
+                  onClick={e => {
+                    e.stopPropagation();
+                    dismissAlertApi(alert.id).catch(() => {});
+                    dismissAlert(alert.id);
+                  }}
                   className="flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-white/20 hover:text-white/70 hover:bg-white/8 transition-all mt-0.5"
                 >
                   <X size={11} />

@@ -11,3 +11,266 @@ Press CTRL+C to quit
  * Restarting with watchdog (windowsapi)
  * Debugger is active!
  * Debugger PIN: 971-005-133
+ * Detected change in 'C:\\Users\\Neema Sree\\AppData\\Roaming\\Python\\Python313\\site-packages\\flask\\app.py', reloading
+ * Detected change in 'C:\\Users\\Neema Sree\\AppData\\Roaming\\Python\\Python313\\site-packages\\flask_cors\\extension.py', reloading
+[OK] MongoDB connected -> eventsphere
+✓ Orchestrator AI started
+✓ EventiSphere AI backend running on port 5000
+Exception in thread Thread-3 (serve_forever):
+Traceback (most recent call last):
+  File "C:\Program Files\Python313\Lib\threading.py", line 1041, in _bootstrap_inner
+    self.run()
+    ~~~~~~~~^^
+  File "C:\Program Files\Python313\Lib\threading.py", line 992, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Neema Sree\AppData\Roaming\Python\Python313\site-packages\werkzeug\serving.py", line 819, in serve_forever
+    super().serve_forever(poll_interval=poll_interval)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python313\Lib\socketserver.py", line 235, in serve_forever
+    ready = selector.select(poll_interval)
+  File "C:\Program Files\Python313\Lib\selectors.py", line 314, in select
+    r, w, _ = self._select(self._readers, self._writers, [], timeout)
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python313\Lib\selectors.py", line 305, in _select
+    r, w, x = select.select(r, w, w, timeout)
+              ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+OSError: [WinError 10038] An operation was attempted on something that is not a socket
+ * Restarting with watchdog (windowsapi)
+ * Debugger is active!
+ * Debugger PIN: 971-005-133
+ * Detected change in 'd:\\EVENTISPHERE-AI\\backend\\routes\\api.py', reloading
+[OK] MongoDB connected -> eventsphere
+✓ Orchestrator AI started
+✓ EventiSphere AI backend running on port 5000
+Exception in thread Thread-3 (serve_forever):
+Traceback (most recent call last):
+  File "C:\Program Files\Python313\Lib\threading.py", line 1041, in _bootstrap_inner
+    self.run()
+    ~~~~~~~~^^
+  File "C:\Program Files\Python313\Lib\threading.py", line 992, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Neema Sree\AppData\Roaming\Python\Python313\site-packages\werkzeug\serving.py", line 819, in serve_forever
+    super().serve_forever(poll_interval=poll_interval)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python313\Lib\socketserver.py", line 235, in serve_forever
+    ready = selector.select(poll_interval)
+  File "C:\Program Files\Python313\Lib\selectors.py", line 314, in select
+    r, w, _ = self._select(self._readers, self._writers, [], timeout)
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python313\Lib\selectors.py", line 305, in _select
+    r, w, x = select.select(r, w, w, timeout)
+              ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+OSError: [WinError 10038] An operation was attempted on something that is not a socket
+ * Restarting with watchdog (windowsapi)
+ * Debugger is active!
+ * Debugger PIN: 971-005-133
+ * Detected change in 'd:\\EVENTISPHERE-AI\\backend\\app.py', reloading
+ * Detected change in 'd:\\EVENTISPHERE-AI\\backend\\app.py', reloading
+[OK] MongoDB connected -> eventsphere
+✓ Orchestrator AI started
+✓ EventiSphere AI backend running on port 5000
+Exception in thread Thread-3 (serve_forever):
+Traceback (most recent call last):
+  File "C:\Program Files\Python313\Lib\threading.py", line 1041, in _bootstrap_inner
+    self.run()
+    ~~~~~~~~^^
+  File "C:\Program Files\Python313\Lib\threading.py", line 992, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Neema Sree\AppData\Roaming\Python\Python313\site-packages\werkzeug\serving.py", line 819, in serve_forever
+    super().serve_forever(poll_interval=poll_interval)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python313\Lib\socketserver.py", line 235, in serve_forever
+    ready = selector.select(poll_interval)
+  File "C:\Program Files\Python313\Lib\selectors.py", line 314, in select
+    r, w, _ = self._select(self._readers, self._writers, [], timeout)
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python313\Lib\selectors.py", line 305, in _select
+    r, w, x = select.select(r, w, w, timeout)
+              ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+OSError: [WinError 10038] An operation was attempted on something that is not a socket
+ * Restarting with watchdog (windowsapi)
+ * Debugger is active!
+ * Debugger PIN: 971-005-133
+ * Detected change in 'd:\\EVENTISPHERE-AI\\backend\\routes\\api.py', reloading
+ * Detected change in 'd:\\EVENTISPHERE-AI\\backend\\routes\\api.py', reloading
+[OK] MongoDB connected -> eventsphere
+[OK] Orchestrator AI started
+[OK] EventiSphere AI backend running on port 5000
+Exception in thread Thread-3 (serve_forever):
+Traceback (most recent call last):
+  File "C:\Program Files\Python313\Lib\threading.py", line 1041, in _bootstrap_inner
+    self.run()
+    ~~~~~~~~^^
+  File "C:\Program Files\Python313\Lib\threading.py", line 992, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Neema Sree\AppData\Roaming\Python\Python313\site-packages\werkzeug\serving.py", line 819, in serve_forever
+    super().serve_forever(poll_interval=poll_interval)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python313\Lib\socketserver.py", line 235, in serve_forever
+    ready = selector.select(poll_interval)
+  File "C:\Program Files\Python313\Lib\selectors.py", line 314, in select
+    r, w, _ = self._select(self._readers, self._writers, [], timeout)
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python313\Lib\selectors.py", line 305, in _select
+    r, w, x = select.select(r, w, w, timeout)
+              ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+OSError: [WinError 10038] An operation was attempted on something that is not a socket
+ * Restarting with watchdog (windowsapi)
+ * Debugger is active!
+ * Debugger PIN: 971-005-133
+ * Detected change in 'd:\\EVENTISPHERE-AI\\backend\\agents\\analytics_agent.py', reloading
+ * Detected change in 'd:\\EVENTISPHERE-AI\\backend\\agents\\crowd_agent.py', reloading
+ * Detected change in 'd:\\EVENTISPHERE-AI\\backend\\agents\\emergency_agent.py', reloading
+ * Detected change in 'd:\\EVENTISPHERE-AI\\backend\\agents\\gate_agent.py', reloading
+ * Detected change in 'd:\\EVENTISPHERE-AI\\backend\\agents\\ticket_agent.py', reloading
+ * Detected change in 'd:\\EVENTISPHERE-AI\\backend\\routes\\agents.py', reloading
+ * Detected change in 'd:\\EVENTISPHERE-AI\\backend\\routes\\alerts.py', reloading
+ * Detected change in 'd:\\EVENTISPHERE-AI\\backend\\routes\\analytics.py', reloading
+ * Detected change in 'd:\\EVENTISPHERE-AI\\backend\\routes\\simulator.py', reloading
+ * Detected change in 'd:\\EVENTISPHERE-AI\\backend\\routes\\tickets.py', reloading
+ * Detected change in 'd:\\EVENTISPHERE-AI\\backend\\routes\\zones.py', reloading
+ * Detected change in 'd:\\EVENTISPHERE-AI\\backend\\utils\\ai_engine.py', reloading
+[OK] MongoDB connected -> eventsphere
+[OK] Orchestrator AI started
+[OK] EventiSphere AI backend running on port 5000
+Exception in thread Thread-3 (serve_forever):
+Traceback (most recent call last):
+  File "C:\Program Files\Python313\Lib\threading.py", line 1041, in _bootstrap_inner
+    self.run()
+    ~~~~~~~~^^
+  File "C:\Program Files\Python313\Lib\threading.py", line 992, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Neema Sree\AppData\Roaming\Python\Python313\site-packages\werkzeug\serving.py", line 819, in serve_forever
+    super().serve_forever(poll_interval=poll_interval)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python313\Lib\socketserver.py", line 235, in serve_forever
+    ready = selector.select(poll_interval)
+  File "C:\Program Files\Python313\Lib\selectors.py", line 314, in select
+    r, w, _ = self._select(self._readers, self._writers, [], timeout)
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python313\Lib\selectors.py", line 305, in _select
+    r, w, x = select.select(r, w, w, timeout)
+              ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+OSError: [WinError 10038] An operation was attempted on something that is not a socket
+ * Restarting with watchdog (windowsapi)
+ * Debugger is active!
+ * Debugger PIN: 971-005-133
+ * Detected change in 'd:\\EVENTISPHERE-AI\\backend\\routes\\crowd.py', reloading
+ * Detected change in 'd:\\EVENTISPHERE-AI\\backend\\routes\\crowd.py', reloading
+ * Detected change in 'd:\\EVENTISPHERE-AI\\backend\\routes\\crowd.py', reloading
+[OK] MongoDB connected -> eventsphere
+[OK] Orchestrator AI started
+[OK] EventiSphere AI backend running on port 5000
+Exception in thread Thread-3 (serve_forever):
+Traceback (most recent call last):
+  File "C:\Program Files\Python313\Lib\threading.py", line 1041, in _bootstrap_inner
+    self.run()
+    ~~~~~~~~^^
+  File "C:\Program Files\Python313\Lib\threading.py", line 992, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Neema Sree\AppData\Roaming\Python\Python313\site-packages\werkzeug\serving.py", line 819, in serve_forever
+    super().serve_forever(poll_interval=poll_interval)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python313\Lib\socketserver.py", line 235, in serve_forever
+    ready = selector.select(poll_interval)
+  File "C:\Program Files\Python313\Lib\selectors.py", line 314, in select
+    r, w, _ = self._select(self._readers, self._writers, [], timeout)
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python313\Lib\selectors.py", line 305, in _select
+    r, w, x = select.select(r, w, w, timeout)
+              ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+OSError: [WinError 10038] An operation was attempted on something that is not a socket
+ * Restarting with watchdog (windowsapi)
+ * Debugger is active!
+ * Debugger PIN: 971-005-133
+ * Detected change in 'd:\\EVENTISPHERE-AI\\backend\\routes\\analytics.py', reloading
+ * Detected change in 'd:\\EVENTISPHERE-AI\\backend\\routes\\analytics.py', reloading
+[OK] MongoDB connected -> eventsphere
+[OK] Orchestrator AI started
+[OK] EventiSphere AI backend running on port 5000
+Exception in thread Thread-3 (serve_forever):
+Traceback (most recent call last):
+  File "C:\Program Files\Python313\Lib\threading.py", line 1041, in _bootstrap_inner
+    self.run()
+    ~~~~~~~~^^
+  File "C:\Program Files\Python313\Lib\threading.py", line 992, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Neema Sree\AppData\Roaming\Python\Python313\site-packages\werkzeug\serving.py", line 819, in serve_forever
+    super().serve_forever(poll_interval=poll_interval)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python313\Lib\socketserver.py", line 235, in serve_forever
+    ready = selector.select(poll_interval)
+  File "C:\Program Files\Python313\Lib\selectors.py", line 314, in select
+    r, w, _ = self._select(self._readers, self._writers, [], timeout)
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python313\Lib\selectors.py", line 305, in _select
+    r, w, x = select.select(r, w, w, timeout)
+              ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+OSError: [WinError 10038] An operation was attempted on something that is not a socket
+ * Restarting with watchdog (windowsapi)
+ * Debugger is active!
+ * Debugger PIN: 971-005-133
+ * Detected change in 'd:\\EVENTISPHERE-AI\\backend\\routes\\api.py', reloading
+ * Detected change in 'd:\\EVENTISPHERE-AI\\backend\\routes\\api.py', reloading
+ * Detected change in 'd:\\EVENTISPHERE-AI\\backend\\routes\\api.py', reloading
+[OK] MongoDB connected -> eventsphere
+[OK] Orchestrator AI started
+[OK] EventiSphere AI backend running on port 5000
+Exception in thread Thread-3 (serve_forever):
+Traceback (most recent call last):
+  File "C:\Program Files\Python313\Lib\threading.py", line 1041, in _bootstrap_inner
+    self.run()
+    ~~~~~~~~^^
+  File "C:\Program Files\Python313\Lib\threading.py", line 992, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Neema Sree\AppData\Roaming\Python\Python313\site-packages\werkzeug\serving.py", line 819, in serve_forever
+    super().serve_forever(poll_interval=poll_interval)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python313\Lib\socketserver.py", line 235, in serve_forever
+    ready = selector.select(poll_interval)
+  File "C:\Program Files\Python313\Lib\selectors.py", line 314, in select
+    r, w, _ = self._select(self._readers, self._writers, [], timeout)
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python313\Lib\selectors.py", line 305, in _select
+    r, w, x = select.select(r, w, w, timeout)
+              ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+OSError: [WinError 10038] An operation was attempted on something that is not a socket
+ * Restarting with watchdog (windowsapi)
+ * Debugger is active!
+ * Debugger PIN: 971-005-133
+ * Detected change in 'd:\\EVENTISPHERE-AI\\backend\\agents\\orchestrator.py', reloading
+ * Detected change in 'd:\\EVENTISPHERE-AI\\backend\\agents\\orchestrator.py', reloading
+[OK] MongoDB connected -> eventsphere
+[OK] Orchestrator AI started
+[OK] EventiSphere AI backend running on port 5000
+Exception in thread Thread-3 (serve_forever):
+Traceback (most recent call last):
+  File "C:\Program Files\Python313\Lib\threading.py", line 1041, in _bootstrap_inner
+    self.run()
+    ~~~~~~~~^^
+  File "C:\Program Files\Python313\Lib\threading.py", line 992, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Neema Sree\AppData\Roaming\Python\Python313\site-packages\werkzeug\serving.py", line 819, in serve_forever
+    super().serve_forever(poll_interval=poll_interval)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python313\Lib\socketserver.py", line 235, in serve_forever
+    ready = selector.select(poll_interval)
+  File "C:\Program Files\Python313\Lib\selectors.py", line 314, in select
+    r, w, _ = self._select(self._readers, self._writers, [], timeout)
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python313\Lib\selectors.py", line 305, in _select
+    r, w, x = select.select(r, w, w, timeout)
+              ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+OSError: [WinError 10038] An operation was attempted on something that is not a socket
+ * Restarting with watchdog (windowsapi)
+ * Debugger is active!
+ * Debugger PIN: 971-005-133

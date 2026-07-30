@@ -1,50 +1,45 @@
 from flask import Blueprint, jsonify
 from models.data_store import ZONES, EVENT_LOGS, SIMULATION_LOGS
-from utils.ai_engine import compute_kpi
+from agents import analytics_agent
 from datetime import datetime
 
 analytics_bp = Blueprint("analytics", __name__)
 
-_HOURLY = [
-    {"hour": "14:00", "visitors": 1200, "capacity": 8000, "incidents": 0},
-    {"hour": "15:00", "visitors": 3400, "capacity": 8000, "incidents": 1},
-    {"hour": "16:00", "visitors": 5800, "capacity": 8000, "incidents": 2},
-    {"hour": "17:00", "visitors": 7200, "capacity": 8000, "incidents": 1},
-    {"hour": "18:00", "visitors": 8100, "capacity": 8000, "incidents": 3},
-    {"hour": "19:00", "visitors": 7600, "capacity": 8000, "incidents": 2},
-    {"hour": "20:00", "visitors": 6200, "capacity": 8000, "incidents": 1},
-    {"hour": "21:00", "visitors": 4800, "capacity": 8000, "incidents": 0},
-]
-
 @analytics_bp.route("/kpi", methods=["GET"])
 def kpi():
-    return jsonify(compute_kpi())
+    snap = analytics_agent.snapshot()   # records snapshot + posts agent message
+    return jsonify(snap["kpi"])
 
 @analytics_bp.route("/hourly", methods=["GET"])
 def hourly():
-    return jsonify({"data": _HOURLY})
+    insights = analytics_agent.get_insights()
+    kpi_data = insights["kpi"]
+    # Build a live 8-hour ramp from current crowd
+    total = kpi_data.get("currentCrowd", 8000)
+    cap   = kpi_data.get("totalCapacity", 15000)
+    from datetime import datetime as _dt
+    now = _dt.utcnow()
+    data = []
+    for h in range(-7, 1):
+        frac = (h + 8) / 8
+        data.append({
+            "hour":      (_dt(now.year, now.month, now.day, now.hour) .__class__(now.year, now.month, now.day, (now.hour + h) % 24)).strftime("%H:00"),
+            "visitors":  int(total * frac * (0.75 + 0.25 * frac)),
+            "capacity":  cap,
+            "incidents": 0,
+        })
+    return jsonify({"data": data})
 
 @analytics_bp.route("/zones", methods=["GET"])
 def zone_analytics():
+    snap = analytics_agent.snapshot()
     data = [
-        {
-            "zone":        z["name"],
-            "avgOccupancy": z["occupancy"],
-            "peakCrowd":   z["currentCrowd"],
-            "avgWait":     z["waitingTime"],
-        }
-        for z in ZONES
+        {"zone": z["name"], "avgOccupancy": z["occupancy"],
+         "peakCrowd": z["occupancy"], "avgWait": z["risk"]}
+        for z in snap["zones"]
     ]
     return jsonify({"zones": data})
 
 @analytics_bp.route("/report", methods=["GET"])
 def report():
-    kpi_data = compute_kpi()
-    return jsonify({
-        "generatedAt": datetime.utcnow().isoformat() + "Z",
-        "kpi":          kpi_data,
-        "zoneCount":    len(ZONES),
-        "eventLogs":    len(EVENT_LOGS),
-        "simLogs":      len(SIMULATION_LOGS),
-        "summary":      "Event running smoothly. Food Court requires immediate attention.",
-    })
+    return jsonify(analytics_agent.generate_report())

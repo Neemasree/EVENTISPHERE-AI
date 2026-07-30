@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Users, Bell, Shield, Clock, MapPin, Cpu } from 'lucide-react';
 import { useEventStore } from '../store/eventStore';
@@ -5,6 +6,7 @@ import KPICard from '../components/dashboard/KPICard';
 import DigitalTwinVenue from '../components/venue/DigitalTwinVenue';
 import AlertCenter from '../components/alerts/AlertCenter';
 import SituationReport from '../components/dashboard/SituationReport';
+import { getCrowdStatus } from '../services/api';
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 16 },
@@ -13,7 +15,18 @@ const fadeUp = (delay = 0) => ({
 });
 
 export default function DashboardPage() {
-  const { kpi, alerts } = useEventStore();
+  const { kpi, alerts, setZones } = useEventStore();
+
+  // Poll /crowd/status every 15s and sync zones + KPI into store
+  useEffect(() => {
+    const sync = () =>
+      getCrowdStatus()
+        .then(data => { if (data?.zones) setZones(data.zones); })
+        .catch(() => {});
+    sync();
+    const id = setInterval(sync, 15000);
+    return () => clearInterval(id);
+  }, [setZones]);
   const activeAlerts  = alerts.filter(a => !a.dismissed);
   const criticalCount = activeAlerts.filter(a => a.severity === 'critical').length;
 
